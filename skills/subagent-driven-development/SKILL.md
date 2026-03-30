@@ -11,6 +11,14 @@ Execute plan by dispatching fresh subagent per task, with two-stage review after
 
 **Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration
 
+## Code Style Config
+
+At the start of this skill, check if `.agents/config/code-style.md` exists in the
+project root. If it does, read it and apply its conventions throughout this skill's
+execution — file naming, directory structure, component patterns, etc.
+
+If the file doesn't exist, proceed with no assumptions about code style.
+
 ## When to Use
 
 ```dot
