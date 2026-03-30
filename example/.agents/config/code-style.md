@@ -39,6 +39,11 @@ src/hooks/UseAuth.ts
 // CORRECT
 src/lib/formatDate.ts
 src/utils/parseQuery.ts
+
+// WRONG
+src/lib/FormatDate.ts
+src/utils/parse-query.ts
+src/util/parseQuery.ts
 ```
 
 ### Types
@@ -49,4 +54,9 @@ src/utils/parseQuery.ts
 // CORRECT
 src/types/user.ts
 src/types/apiResponse.ts
+
+// WRONG
+src/types/UserType.ts
+src/types/api-response.ts
+src/type/user.ts
 ```
