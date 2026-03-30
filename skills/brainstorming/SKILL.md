@@ -17,6 +17,14 @@ Do NOT invoke any implementation skill, write any code, scaffold any project, or
 
 Every project goes through this process. A todo list, a single-function utility, a config change — all of them. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences for truly simple projects), but you MUST present it and get approval.
 
+## Code Style Config
+
+At the start of this skill, check if `.agents/config/code-style.md` exists in the
+project root. If it does, read it and apply its conventions throughout this skill's
+execution — file naming, directory structure, component patterns, etc.
+
+If the file doesn't exist, proceed with no assumptions about code style.
+
 ## Checklist
 
 You MUST create a task for each of these items and complete them in order:
