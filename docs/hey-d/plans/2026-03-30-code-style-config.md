@@ -295,7 +295,86 @@ git commit -m "docs: add React.js example code-style config"
 
 ---
 
-### Task 6: Final verification
+### Task 6: Migrate docs from `docs/hey-d/` to flat structure
+
+**Files:**
+- Move: `docs/hey-d/specs/*.md` → `docs/specs/`
+- Move: `docs/hey-d/plans/*.md` → `docs/plans/`
+- Modify: `docs/specs/2026-03-30-code-style-config-design.md` (fix internal cross-reference)
+- Delete: `docs/hey-d/` (now empty)
+
+The skills (brainstorming, writing-plans) direct output to `docs/specs/` and `docs/plans/`.
+The `docs/hey-d/` directory is a leftover from the phase 1 rename of `docs/superpowers/` and should be removed.
+
+- [ ] **Step 1: Create target directories and move specs**
+
+```bash
+mkdir -p docs/specs
+git mv docs/hey-d/specs/2026-01-22-document-review-system-design.md docs/specs/
+git mv docs/hey-d/specs/2026-02-19-visual-brainstorming-refactor-design.md docs/specs/
+git mv docs/hey-d/specs/2026-03-11-zero-dep-brainstorm-server-design.md docs/specs/
+git mv docs/hey-d/specs/2026-03-23-codex-app-compatibility-design.md docs/specs/
+git mv docs/hey-d/specs/2026-03-30-hey-d-customization-design.md docs/specs/
+git mv docs/hey-d/specs/2026-03-30-code-style-config-design.md docs/specs/
+```
+
+- [ ] **Step 2: Move plans**
+
+```bash
+git mv docs/hey-d/plans/2026-01-22-document-review-system.md docs/plans/
+git mv docs/hey-d/plans/2026-02-19-visual-brainstorming-refactor.md docs/plans/
+git mv docs/hey-d/plans/2026-03-11-zero-dep-brainstorm-server.md docs/plans/
+git mv docs/hey-d/plans/2026-03-23-codex-app-compatibility.md docs/plans/
+git mv docs/hey-d/plans/2026-03-30-hey-d-phase1-rebrand.md docs/plans/
+git mv docs/hey-d/plans/2026-03-30-code-style-config.md docs/plans/
+```
+
+Note: this plan file itself is being moved in this step. After running `git mv`, continue editing at the new path `docs/plans/2026-03-30-code-style-config.md`.
+
+- [ ] **Step 3: Fix cross-reference in code-style-config design**
+
+In `docs/specs/2026-03-30-code-style-config-design.md`, find:
+
+```
+This is the first Phase 2 customization from the [hey-d customization design](2026-03-30-hey-d-customization-design.md).
+```
+
+The relative link still works since both files are now in `docs/specs/`. No change needed — verify by reading the file:
+
+```bash
+grep "hey-d customization design" docs/specs/2026-03-30-code-style-config-design.md
+```
+
+Expected: link points to `2026-03-30-hey-d-customization-design.md` (relative, same directory — correct).
+
+- [ ] **Step 4: Remove empty docs/hey-d/ directory**
+
+```bash
+rmdir docs/hey-d/specs docs/hey-d/plans docs/hey-d
+```
+
+Expected: no output (directories removed cleanly).
+
+- [ ] **Step 5: Verify structure**
+
+```bash
+ls docs/specs/
+ls docs/plans/
+test ! -d docs/hey-d && echo "OK: docs/hey-d removed"
+```
+
+Expected: all 6 spec files in `docs/specs/`, all 9 plan files in `docs/plans/`, `docs/hey-d` gone.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add -A docs/
+git commit -m "chore: migrate docs from docs/hey-d/ to docs/specs/ and docs/plans/"
+```
+
+---
+
+### Task 8: Final verification
 
 - [ ] **Step 1: Confirm all 4 skills have the block**
 
