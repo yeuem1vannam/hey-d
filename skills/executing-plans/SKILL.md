@@ -13,6 +13,14 @@ Load plan, review critically, execute all tasks, report when complete.
 
 **Note:** Tell your human partner that Hey-D works much better with access to subagents. The quality of its work will be significantly higher if run on a platform with subagent support (such as Claude Code or Codex). If subagents are available, use hey-d:subagent-driven-development instead of this skill.
 
+## Code Style Config
+
+At the start of this skill, check if `.agents/config/code-style.md` exists in the
+project root. If it does, read it and apply its conventions throughout this skill's
+execution — file naming, directory structure, component patterns, etc.
+
+If the file doesn't exist, proceed with no assumptions about code style.
+
 ## The Process
 
 ### Step 1: Load and Review Plan
