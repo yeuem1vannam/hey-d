@@ -13,6 +13,14 @@ Write the test first. Watch it fail. Write minimal code to pass.
 
 **Violating the letter of the rules is violating the spirit of the rules.**
 
+## Code Style Config
+
+At the start of this skill, check if `.agents/config/code-style.md` exists in the
+project root. If it does, read it and apply its conventions throughout this skill's
+execution — file naming, directory structure, component patterns, etc.
+
+If the file doesn't exist, proceed with no assumptions about code style.
+
 ## When to Use
 
 **Always:**
