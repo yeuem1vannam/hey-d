@@ -148,8 +148,6 @@ Start a new session in your chosen platform and ask for something that should tr
 - **Complexity reduction** - Simplicity as primary goal
 - **Evidence over claims** - Verify before declaring success
 
-Read more: [Hey D for Claude Code](https://blog.fsck.com/2025/10/09/superpowers/)
-
 ## Contributing
 
 Skills live directly in this repository. To contribute:
