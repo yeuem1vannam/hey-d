@@ -21,6 +21,10 @@ execution — file naming, directory structure, component patterns, etc.
 
 If the file doesn't exist, proceed with no assumptions about code style.
 
+## Commit Config
+
+At the start of this skill, check if `.agents/config/commits.md` exists in the project root. If it does, read it and apply its conventions (commit types, scopes, co-author rules, pre-commit commands) when committing. If absent, use standard Conventional Commits defaults with no co-author attribution.
+
 ## The Process
 
 ### Step 1: Load and Review Plan
