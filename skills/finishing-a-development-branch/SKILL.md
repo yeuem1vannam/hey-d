@@ -13,6 +13,14 @@ Guide completion of development work by presenting clear options and handling ch
 
 **Announce at start:** "I'm using the finishing-a-development-branch skill to complete this work."
 
+## Commit Config
+
+At the start of this skill, check if `.agents/config/commits.md` exists in the project root. If it does, read it and apply its conventions (commit types, scopes, co-author rules, pre-commit commands) when committing. If absent, use standard Conventional Commits defaults with no co-author attribution.
+
+## PR Config
+
+At the start of this skill, check if `.agents/config/github.md` exists in the project root. If it does, read it and apply its conventions when creating pull requests. Template resolution order: workspace `.github/` → org repo specified in `org-repo` field → `.agents/cache/templates/`. If absent, look for templates only in the workspace `.github/` directory.
+
 ## The Process
 
 ### Step 1: Verify Tests
