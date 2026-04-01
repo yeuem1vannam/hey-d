@@ -9,19 +9,22 @@ description: Use when implementation is complete, all tests pass, and you need t
 
 Guide completion of development work by presenting clear options and handling chosen workflow.
 
-**Core principle:** Verify tests → Present options → Execute choice → Clean up.
+**Core principle:** [Prerequisite] → Verify tests → Present options → Execute choice → Clean up.
 
 **Announce at start:** "I'm using the finishing-a-development-branch skill to complete this work."
 
-## Commit Config
-
-At the start of this skill, check if `.agents/config/commits.md` exists in the project root. If it does, read it and apply its conventions (commit types, scopes, co-author rules, pre-commit commands) when committing. If absent, use standard Conventional Commits defaults with no co-author attribution.
-
-## PR Config
-
-At the start of this skill, check if `.agents/config/github.md` exists in the project root. If it does, read it and apply its conventions when creating pull requests. Template resolution order: workspace `.github/` → org repo specified in `org-repo` field → `.agents/cache/templates/`. If absent, look for templates only in the workspace `.github/` directory.
-
 ## The Process
+
+### Prerequisite
+#### Commit Config
+
+Check if `.agents/config/commits.md` exists in the project root. If it does, read it and apply its conventions (commit types, scopes, co-author rules, pre-commit commands) when committing. If absent, use standard Conventional Commits defaults with no co-author attribution.
+
+**Never include issue or PR references** (e.g. `#123`) in commit messages unless `.agents/config/commits.md` explicitly instructs it. Don't infer them from context.
+
+#### PR Config
+
+Check if `.agents/config/github.md` exists in the project root. If it does, read it and apply its conventions when creating pull requests. Template resolution order: workspace `.github/` → org repo specified in `org-repo` field → `.agents/cache/templates/`. If absent, look for templates only in the workspace `.github/` directory.
 
 ### Step 1: Verify Tests
 
@@ -47,12 +50,29 @@ Stop. Don't proceed to Step 2.
 
 ### Step 2: Determine Base Branch
 
+Find the remote branch this branch diverged from most recently (fewest commits ahead):
+
 ```bash
-# Try common base branches
-git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null
+git for-each-ref --format='%(refname:short)' refs/remotes/origin/ \
+  | grep -v HEAD \
+  | while read branch; do
+      count=$(git rev-list --count HEAD ^$branch 2>/dev/null)
+      echo "$count $branch"
+    done \
+  | sort -n \
+  | head -5
 ```
 
-Or ask: "This branch split from main - is that correct?"
+Pick the branch with the fewest commits ahead — that is the base branch. Strip the `origin/` prefix for local use (e.g., `origin/main` → `main`).
+
+If the result is ambiguous or the branch list is empty, fall back to checking common names:
+
+```bash
+git rev-parse --verify origin/main 2>/dev/null && echo main \
+  || git rev-parse --verify origin/master 2>/dev/null && echo master
+```
+
+If still unclear, ask: "Which branch should this be merged into?"
 
 ### Step 3: Present Options
 

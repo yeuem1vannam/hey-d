@@ -18,9 +18,12 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 **Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`
 - (User preferences for plan location override this default)
 
-## Commit Config
+## Prerequisite
+### Commit Config
 
-At the start of this skill, check if `.agents/config/commits.md` exists in the project root. If it does, read it and apply its conventions (commit types, scopes) when writing commit steps in the plan. If absent, use standard Conventional Commits defaults.
+Check if `.agents/config/commits.md` exists in the project root. If it does, read it and apply its conventions (commit types, scopes) when writing commit steps in the plan. If absent, use standard Conventional Commits defaults.
+
+**Never include issue or PR references** (e.g. `#123`) in commit messages unless `.agents/config/commits.md` explicitly instructs it. Don't infer them from context.
 
 ## Scope Check
 

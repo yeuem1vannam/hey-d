@@ -17,7 +17,8 @@ Do NOT invoke any implementation skill, write any code, scaffold any project, or
 
 Every project goes through this process. A todo list, a single-function utility, a config change — all of them. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences for truly simple projects), but you MUST present it and get approval.
 
-## Code Style Config
+## Prerequisite
+### Code Style Config
 
 At the start of this skill, check if `.agents/config/code-style.md` exists in the
 project root. If it does, read it and apply its conventions throughout this skill's
@@ -97,6 +98,7 @@ digraph brainstorming {
 - Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
 - Ask after each section whether it looks right so far
 - Cover: architecture, components, data flow, error handling, testing
+- For architecture overviews, component relationships, and data/control flow, prefer mermaid diagrams over prose — they communicate structure faster and more precisely. Use prose when the system is too simple to warrant a diagram.
 - Be ready to go back and clarify if something doesn't make sense
 
 **Design for isolation and clarity:**
@@ -118,6 +120,7 @@ digraph brainstorming {
 
 - Write the validated design (spec) to `docs/specs/YYYY-MM-DD-<topic>-design.md`
   - (User preferences for spec location override this default)
+- Use mermaid diagrams in the spec for architecture, data flow, and sequences where they appeared during the design conversation. Prefer diagrams over prose for anything structural; use prose for everything else.
 - Use elements-of-style:writing-clearly-and-concisely skill if available
 - Commit the design document to git
 

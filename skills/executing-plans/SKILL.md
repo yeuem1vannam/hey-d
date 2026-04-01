@@ -13,17 +13,16 @@ Load plan, review critically, execute all tasks, report when complete.
 
 **Note:** Tell your human partner that Hey-D works much better with access to subagents. The quality of its work will be significantly higher if run on a platform with subagent support (such as Claude Code or Codex). If subagents are available, use hey-d:subagent-driven-development instead of this skill.
 
-## Code Style Config
+## Prerequisite
+### Code Style Config
 
-At the start of this skill, check if `.agents/config/code-style.md` exists in the
-project root. If it does, read it and apply its conventions throughout this skill's
-execution — file naming, directory structure, component patterns, etc.
+Check if `.agents/config/code-style.md` exists in the project root. If it does, read it and apply its conventions throughout this skill's execution — file naming, directory structure, component patterns, etc. If absent, proceed with no assumptions about code style.
 
-If the file doesn't exist, proceed with no assumptions about code style.
+### Commit Config
 
-## Commit Config
+Check if `.agents/config/commits.md` exists in the project root. If it does, read it and apply its conventions (commit types, scopes, co-author rules, pre-commit commands) when committing. If absent, use standard Conventional Commits defaults with no co-author attribution.
 
-At the start of this skill, check if `.agents/config/commits.md` exists in the project root. If it does, read it and apply its conventions (commit types, scopes, co-author rules, pre-commit commands) when committing. If absent, use standard Conventional Commits defaults with no co-author attribution.
+**Never include issue or PR references** (e.g. `#123`) in commit messages unless `.agents/config/commits.md` explicitly instructs it. Don't infer them from context.
 
 ## The Process
 
