@@ -126,9 +126,11 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 1. If it's a context problem, provide more context and re-dispatch with the same model
 2. If the task requires more reasoning, re-dispatch with a more capable model
 3. If the task is too large, break it into smaller pieces
-4. If the plan itself is wrong, escalate to the human
+4. If the plan itself is wrong, **use `hey-d:revising-plans`** to classify severity and amend (Medium) or escalate to `writing-plans`/`brainstorming` (Major)
 
 **Never** ignore an escalation or force the same model to retry without changes. If the implementer said it's stuck, something needs to change.
+
+**Plan-level gaps from reviewers:** If a spec reviewer or code quality reviewer surfaces an issue that can't be fixed within the current task because the plan itself is defective, use `hey-d:revising-plans` rather than papering over it in the implementer loop.
 
 ## Prompt Templates
 
@@ -281,6 +283,7 @@ Done!
 **Required workflow skills:**
 - **hey-d:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
 - **hey-d:writing-plans** - Creates the plan this skill executes
+- **hey-d:revising-plans** - REQUIRED when the plan diverges from reality mid-execution (implementer BLOCKED with plan-level cause, or reviewer surfaces structural gap)
 - **hey-d:requesting-code-review** - Code review template for reviewer subagents
 - **hey-d:verification-before-completion** - REQUIRED: Confirm plan requirements pass with fresh evidence after final review, before finishing
 - **hey-d:finishing-a-development-branch** - Complete development after verification

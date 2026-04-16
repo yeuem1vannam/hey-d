@@ -157,3 +157,12 @@ After saving the plan, offer execution choice:
 **If Inline Execution chosen:**
 - **REQUIRED SUB-SKILL:** Use hey-d:executing-plans
 - Batch execution with checkpoints for review
+
+## Re-Entry from Mid-Flight Revision
+
+`hey-d:revising-plans` calls back into this skill when a Major revision is needed (plan is wrong, spec is right). When entering via that path:
+
+- Focus on rewriting only the affected sections of the existing plan — do not regenerate the whole plan
+- Preserve completed tasks as-is; revise only the obsolete tasks and downstream dependents
+- Maintain the plan's Revision Log section added by `revising-plans`
+- After the rewrite, hand back to the executor (don't prompt for execution-mode choice again)

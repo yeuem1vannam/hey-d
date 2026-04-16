@@ -72,13 +72,16 @@ Only after Step 3 passes with fresh evidence:
 
 **Ask for clarification rather than guessing.**
 
-## When to Revisit Earlier Steps
+## Mid-Flight Plan Revision
 
-**Return to Review (Step 1) when:**
-- Partner updates the plan based on your feedback
-- Fundamental approach needs rethinking
+If during Step 2 you discover the plan doesn't match reality (approach won't work, spec was wrong, later tasks invalidated by earlier results):
 
-**Don't force through blockers** - stop and ask.
+- **Do NOT** silently deviate from the plan — that creates drift between the written plan and the code
+- **Do NOT** force through a broken plan
+- **REQUIRED SUB-SKILL:** Use `hey-d:revising-plans` to classify severity (Medium vs Major) and apply the appropriate protocol
+- After `revising-plans` completes, resume where it directs you (Step 2 for Medium, Step 1 for Major)
+
+Failing tests are not a revision trigger — use `hey-d:systematic-debugging` for those. Enter `revising-plans` only when the plan itself is defective.
 
 ## Remember
 - Review plan critically first
@@ -93,5 +96,6 @@ Only after Step 3 passes with fresh evidence:
 **Required workflow skills:**
 - **hey-d:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
 - **hey-d:writing-plans** - Creates the plan this skill executes
+- **hey-d:revising-plans** - REQUIRED when the plan diverges from reality mid-execution
 - **hey-d:verification-before-completion** - REQUIRED: Confirm all tasks pass with fresh evidence before finishing
 - **hey-d:finishing-a-development-branch** - Complete development after verification
