@@ -137,3 +137,12 @@ From 24 failure memories:
 Run the command. Read the output. THEN claim the result.
 
 This is non-negotiable.
+
+## Integration
+
+**Called by (as REQUIRED sub-skill):**
+- **hey-d:executing-plans** - Step 3, before handing off to finishing-a-development-branch
+- **hey-d:subagent-driven-development** - After final reviewer, before finishing-a-development-branch
+
+**Pairs with:**
+- **hey-d:finishing-a-development-branch** - Runs immediately after this skill; finishing assumes verification has produced fresh evidence

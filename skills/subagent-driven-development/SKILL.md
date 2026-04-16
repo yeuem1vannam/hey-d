@@ -72,6 +72,7 @@ digraph process {
     "Read plan, extract all tasks with full text, note context, create TodoWrite" [shape=box];
     "More tasks remain?" [shape=diamond];
     "Dispatch final code reviewer subagent for entire implementation" [shape=box];
+    "Use hey-d:verification-before-completion" [shape=box style=filled fillcolor=lightyellow];
     "Use hey-d:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
     "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Dispatch implementer subagent (./implementer-prompt.md)";
@@ -91,7 +92,8 @@ digraph process {
     "Mark task complete in TodoWrite" -> "More tasks remain?";
     "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
     "More tasks remain?" -> "Dispatch final code reviewer subagent for entire implementation" [label="no"];
-    "Dispatch final code reviewer subagent for entire implementation" -> "Use hey-d:finishing-a-development-branch";
+    "Dispatch final code reviewer subagent for entire implementation" -> "Use hey-d:verification-before-completion";
+    "Use hey-d:verification-before-completion" -> "Use hey-d:finishing-a-development-branch";
 }
 ```
 
@@ -257,6 +259,7 @@ Done!
 - Let implementer self-review replace actual review (both are needed)
 - **Start code quality review before spec compliance is ✅** (wrong order)
 - Move to next task while either review has open issues
+- **Invoke finishing-a-development-branch without first running hey-d:verification-before-completion** — final reviewer approval is not the same as fresh test evidence against the original plan requirements
 
 **If subagent asks questions:**
 - Answer clearly and completely
@@ -279,7 +282,8 @@ Done!
 - **hey-d:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
 - **hey-d:writing-plans** - Creates the plan this skill executes
 - **hey-d:requesting-code-review** - Code review template for reviewer subagents
-- **hey-d:finishing-a-development-branch** - Complete development after all tasks
+- **hey-d:verification-before-completion** - REQUIRED: Confirm plan requirements pass with fresh evidence after final review, before finishing
+- **hey-d:finishing-a-development-branch** - Complete development after verification
 
 **Subagents should use:**
 - **hey-d:test-driven-development** - Subagents follow TDD for each task

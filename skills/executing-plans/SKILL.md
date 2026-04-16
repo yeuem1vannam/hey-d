@@ -26,6 +26,12 @@ Check if `.agents/config/commits.md` exists in the project root. If it does, rea
 
 ## The Process
 
+### Step 0: Verify Branch
+1. Run `git branch --show-current` to check the current branch
+2. Confirm you are on a feature branch (not `main` or `master`)
+3. If `.agents/config/branches.md` exists, verify the branch name follows its naming convention
+4. If on `main`/`master`: **STOP** — ask the user to switch to a feature branch or use hey-d:using-git-worktrees to create one before proceeding
+
 ### Step 1: Load and Review Plan
 1. Read plan file
 2. Review critically - identify any questions or concerns about the plan
@@ -40,9 +46,18 @@ For each task:
 3. Run verifications as specified
 4. Mark as completed
 
-### Step 3: Complete Development
+### Step 3: Verify Completion
 
-After all tasks complete and verified:
+Before claiming the plan is complete, gather fresh evidence that every task actually works.
+
+- Announce: "I'm using the verification-before-completion skill to confirm the work is complete."
+- **REQUIRED SUB-SKILL:** Use hey-d:verification-before-completion
+- Run the project's full test suite, re-read the plan's requirements line by line, and confirm each one against the code.
+- If anything fails or a requirement has no evidence: **STOP**, return to Step 2, and fix before proceeding.
+
+### Step 4: Complete Development
+
+Only after Step 3 passes with fresh evidence:
 - Announce: "I'm using the finishing-a-development-branch skill to complete this work."
 - **REQUIRED SUB-SKILL:** Use hey-d:finishing-a-development-branch
 - Follow that skill to verify tests, present options, execute choice
@@ -78,4 +93,5 @@ After all tasks complete and verified:
 **Required workflow skills:**
 - **hey-d:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
 - **hey-d:writing-plans** - Creates the plan this skill executes
-- **hey-d:finishing-a-development-branch** - Complete development after all tasks
+- **hey-d:verification-before-completion** - REQUIRED: Confirm all tasks pass with fresh evidence before finishing
+- **hey-d:finishing-a-development-branch** - Complete development after verification
