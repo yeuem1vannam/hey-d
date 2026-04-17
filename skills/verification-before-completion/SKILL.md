@@ -38,40 +38,61 @@ Use this skill **BEFORE claiming any of the following:**
 
 ## Dispatch Protocol
 
-### Step 1: Identify What Needs Verifying
+### Step 1: Gather the Four Inputs
 
-Before dispatching, answer these questions:
+The verification subagent's contract is strict. It will emit `STATUS: FAIL` with reason "missing input: <name>" if any of these four inputs is absent. Gather all four before dispatching:
 
-- **What claim am I making?** ("Tests pass", "Requirements met", etc.)
-- **What command proves this?** (test suite, build command, grep pattern, etc.)
-- **What does success look like?** (exit code 0, all tests pass, error count 0, etc.)
+- **Verification commands** — ordered list of shell commands that prove the claim (test suite, typecheck, lint, build, etc.). Read from `.agents/config/commits.md` pre-commit commands when available; otherwise detect from `package.json` / `Makefile` / project conventions, or ask the user.
+- **Requirements source** — either a path to the plan file whose requirements need checking, or an inline bullet list of requirements extracted from the task description.
+- **Changed files** — the files modified during the work being verified. Get via `git diff --name-only <base-branch>...HEAD`.
+- **Working directory** — absolute path to the project root where the commands should run.
 
-If you can't answer these, STOP. You don't know what to verify. Don't guess.
+If you cannot gather all four, STOP. You do not know enough to verify. Don't guess. Ask the user.
 
 ### Step 2: Dispatch the verification subagent
 
-Call the verification subagent at `agents/verification.md` with this structure:
+Call the verification subagent at `agents/verification.md` (subagent_type: `verification`) with this structure — all four inputs present and clearly labeled:
 
 ```
-I need verification that [claim]. Here's what to verify:
+I need verification that [claim].
 
-Command to run: [exact command]
-Success criteria: [what constitutes PASS]
-Current context: [what you're verifying about]
+VERIFICATION COMMANDS (run in order):
+  - [command 1]
+  - [command 2]
 
-Please run the command, report the actual output, and give a PASS or FAIL verdict.
-Do not paraphrase. Do not assume. Run the command and show the output.
+REQUIREMENTS SOURCE:
+[inline bullet list OR path to plan file]
+
+CHANGED FILES:
+  - [file 1]
+  - [file 2]
+
+WORKING DIRECTORY: [absolute path]
+
+Run the commands, check the requirements against the changed files, and report in the structured format defined in your system prompt. Do not paraphrase. Do not assume. Show actual output.
 ```
 
 Example:
 ```
-I need verification that the test suite passes. Here's what to verify:
+I need verification that the authentication fix is complete.
 
-Command to run: npm test
-Success criteria: All tests pass with exit code 0
-Current context: After fixing the authentication bug in src/auth.js
+VERIFICATION COMMANDS (run in order):
+  - npm test
+  - npm run typecheck
 
-Please run the command, report the actual output, and give a PASS or FAIL verdict.
+REQUIREMENTS SOURCE:
+  - Login endpoint rejects invalid credentials with 401
+  - Session token is invalidated on logout
+  - Rate limiter kicks in after 5 failed attempts
+
+CHANGED FILES:
+  - src/auth.js
+  - src/middleware/rate-limit.js
+  - tests/auth.test.js
+
+WORKING DIRECTORY: /Users/me/projects/my-app
+
+Run the commands, check the requirements against the changed files, and report in the structured format defined in your system prompt.
 ```
 
 ### Step 3: Wait for the Verification Report
