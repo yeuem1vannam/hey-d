@@ -137,4 +137,117 @@
     init();
   }
 
+  // ================== CONTENT ==================
+
+  // <field> — label + placeholder textarea mock
+  class HeydField extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.heydDecorated) return;
+      this.dataset.heydDecorated = '1';
+      const label = this.getAttribute('label');
+      const placeholder = this.getAttribute('placeholder') || label || 'Enter value...';
+      if (label) {
+        const l = document.createElement('div');
+        l.className = 'field-label';
+        l.textContent = label;
+        this.prepend(l);
+      }
+      if (!this.textContent.trim()) {
+        this.appendChild(document.createTextNode(placeholder));
+      }
+    }
+  }
+  customElements.define('field', HeydField);
+
+  // <stat> — KPI / metric display
+  class HeydStat extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.heydDecorated) return;
+      this.dataset.heydDecorated = '1';
+      const label = this.getAttribute('label');
+      const value = this.getAttribute('value');
+      const delta = this.getAttribute('delta');
+      if (label) {
+        const l = document.createElement('div');
+        l.className = 'stat-label';
+        l.textContent = label;
+        this.appendChild(l);
+      }
+      if (value) {
+        const v = document.createElement('div');
+        v.className = 'stat-value';
+        v.textContent = value;
+        this.appendChild(v);
+      }
+      if (delta) {
+        const d = document.createElement('div');
+        d.className = 'stat-delta' + (delta.startsWith('-') ? ' negative' : ' positive');
+        d.textContent = delta;
+        this.appendChild(d);
+      }
+    }
+  }
+  customElements.define('stat', HeydStat);
+
+  // <tag> — styling via CSS only
+  class HeydTag extends HTMLElement {}
+  customElements.define('tag', HeydTag);
+
+  // <callout> — optional label prefix
+  class HeydCallout extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.heydDecorated) return;
+      this.dataset.heydDecorated = '1';
+      const label = this.getAttribute('label');
+      if (label && !this.querySelector(':scope > .callout-label')) {
+        const l = document.createElement('strong');
+        l.className = 'callout-label';
+        l.textContent = label + ': ';
+        this.prepend(l);
+      }
+    }
+  }
+  customElements.define('callout', HeydCallout);
+
+  // <ref> — uppercase label badge + optional source link
+  class HeydRef extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.heydDecorated) return;
+      this.dataset.heydDecorated = '1';
+      const label = this.getAttribute('label');
+      const source = this.getAttribute('source');
+      if (label) {
+        const b = document.createElement('span');
+        b.className = 'ref-label';
+        b.textContent = label;
+        this.prepend(b);
+      }
+      if (source) {
+        const p = document.createElement('p');
+        p.className = 'ref-source';
+        p.innerHTML = `<em>Source: <a href="${source}">${source}</a></em>`;
+        const insertAt = label ? this.children[1] : this.firstChild;
+        this.insertBefore(p, insertAt || null);
+      }
+    }
+  }
+  customElements.define('ref', HeydRef);
+
+  // <prompt> — accent-border row with optional label + question
+  class HeydPrompt extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.heydDecorated) return;
+      this.dataset.heydDecorated = '1';
+      const label = this.getAttribute('label');
+      const question = this.getAttribute('question');
+      if (label || question) {
+        const header = document.createElement('p');
+        header.className = 'prompt-header';
+        header.innerHTML = (label ? `<span class="prompt-label">${label}.</span> ` : '') + (question || '');
+        this.prepend(header);
+      }
+    }
+  }
+  customElements.define('prompt', HeydPrompt);
+
 })();
