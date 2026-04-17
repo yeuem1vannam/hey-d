@@ -81,6 +81,19 @@ const CONTENT_DIR = path.join(SESSION_DIR, 'content');
 const STATE_DIR = path.join(SESSION_DIR, 'state');
 let ownerPid = process.env.BRAINSTORM_OWNER_PID ? Number(process.env.BRAINSTORM_OWNER_PID) : null;
 
+// Plugin + project roots for visualization resource serving.
+// PLUGIN_ROOT = <plugin>/ (three levels up from skills/brainstorming/scripts/)
+// PROJECT_ROOT = the repo where --project-dir points (when available). Detected
+// from SESSION_DIR: if it contains `.hey-d/brainstorm/`, the segment before
+// that is the project root.
+const PLUGIN_ROOT = path.resolve(__dirname, '../../..');
+let PROJECT_ROOT = null;
+{
+  const marker = path.sep + '.hey-d' + path.sep + 'brainstorm' + path.sep;
+  const idx = SESSION_DIR.indexOf(marker);
+  if (idx >= 0) PROJECT_ROOT = SESSION_DIR.slice(0, idx);
+}
+
 const MIME_TYPES = {
   '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript',
   '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg',
@@ -153,6 +166,25 @@ function handleRequest(req, res) {
     const ext = path.extname(filePath).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
     res.writeHead(200, { 'Content-Type': contentType });
+    res.end(fs.readFileSync(filePath));
+  } else if (req.method === 'GET' && req.url.startsWith('/resources/visualization/')) {
+    // Plugin-shipped visualization resources (components.js, theme.css, tailwind.css, etc.)
+    const relPath = req.url.replace(/^\/resources\/visualization\//, '').replace(/\?.*$/, '');
+    if (relPath.includes('..')) { res.writeHead(403); res.end('Forbidden'); return; }
+    const filePath = path.join(PLUGIN_ROOT, 'resources', 'visualization', relPath);
+    if (!fs.existsSync(filePath)) { res.writeHead(404); res.end('Not found'); return; }
+    const ext = path.extname(filePath).toLowerCase();
+    res.writeHead(200, { 'Content-Type': MIME_TYPES[ext] || 'application/octet-stream' });
+    res.end(fs.readFileSync(filePath));
+  } else if (req.method === 'GET' && req.url.startsWith('/.agents/config/visualization/')) {
+    // Optional project-level visualization overrides. Requires --project-dir mode.
+    if (!PROJECT_ROOT) { res.writeHead(404); res.end('Not found (no project root)'); return; }
+    const relPath = req.url.replace(/^\/\.agents\/config\/visualization\//, '').replace(/\?.*$/, '');
+    if (relPath.includes('..')) { res.writeHead(403); res.end('Forbidden'); return; }
+    const filePath = path.join(PROJECT_ROOT, '.agents', 'config', 'visualization', relPath);
+    if (!fs.existsSync(filePath)) { res.writeHead(404); res.end('Not found'); return; }
+    const ext = path.extname(filePath).toLowerCase();
+    res.writeHead(200, { 'Content-Type': MIME_TYPES[ext] || 'application/octet-stream' });
     res.end(fs.readFileSync(filePath));
   } else {
     res.writeHead(404);
