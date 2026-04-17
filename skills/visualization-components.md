@@ -11,6 +11,38 @@ description: Reference catalog of the 18 hey-d visualization components. Loaded 
 
 **All tags are prefixed `hd-`** (Web Components spec requires a hyphen). Native HTML elements (`<section>`, `<nav>`, `<code>`) are enhanced in place with special attributes — no prefix needed.
 
+## Cheat sheet (scan first)
+
+**Layout** — page structure
+- `<section title="..." subtitle="...">` — page/spec section, auto h2+subtitle
+- `<hd-card title="..." tag="...">` — content container; `tag` is optional badge text
+- `<nav title="...">` — nav bar with title
+- `<hd-tabs>` + `<hd-tab label="..." active badge="...">` — tab switcher
+
+**Content** — inline pieces
+- `<hd-field label="..." size="sm|md|lg" placeholder="..." type="...">` — form input placeholder
+- `<hd-stat label="..." value="..." delta="+5%">` — KPI; delta `-...` red, else green
+- `<hd-tag variant="default|required|optional|accent|warning">text</hd-tag>` — label chip
+- `<hd-callout variant="info|translate|note|warning" label="...">text</hd-callout>` — inline note
+- `<hd-ref label="..." source="...">content</hd-ref>` — yellow source/reference panel
+- `<hd-prompt label="Q1" question="...">answer slot</hd-prompt>` — prompt + answer area
+
+**Flow** — sequential / spatial
+- `<hd-steps><hd-step>text</hd-step>...</hd-steps>` — auto-numbered step list
+- `<hd-flow><hd-flow-item label="..." highlight>text</hd-flow-item>...</hd-flow>` — multi-column with → arrows
+- `<hd-compare label-a="..." label-b="..."><div slot="a">...</div><div slot="b">...</div></hd-compare>` — two-column
+- `<hd-matrix axis-top="L|R" axis-left="T|B"><div slot="q1|q2|q3|q4">...</div></hd-matrix>` — 2×2 (q1=TR, q2=BR, q3=TL, q4=BL)
+
+**Decision** — document alternatives
+- `<hd-approach title="..." selected>content</hd-approach>` — decision option; `selected` adds ✓
+- `<hd-tradeoff><ul slot="pros">...</ul><ul slot="cons">...</ul></hd-tradeoff>` — pros/cons side-by-side
+
+**Document** — doc-level
+- `<hd-toc auto>` — auto-generated from `<section title>` children
+- `<code language="ts|json|bash|...">...</code>` — native `<code>`, enhanced with dark styling
+
+**Compose with Tailwind** for grids (`grid grid-cols-3 gap-4`), spacing (`mb-6`, `p-4`), typography (`font-semibold`) — don't invent new components.
+
 ## Quick reference — all 18 components
 
 ### 🏗 Layout (4)
