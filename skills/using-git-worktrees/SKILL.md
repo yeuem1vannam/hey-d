@@ -82,7 +82,7 @@ project=$(basename "$(git rev-parse --show-toplevel)")
 
 ### 2. Determine Branch Name
 
-If `.agents/config/branches.md` exists, read it and follow its naming convention for the new branch. Otherwise, use a descriptive `feature/<name>` format.
+If `.agents/rules/branches.md` exists, read it and follow its naming convention for the new branch. Otherwise, use a descriptive `feature/<name>` format.
 
 ### 3. Create Worktree
 

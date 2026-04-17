@@ -20,7 +20,7 @@ Every project goes through this process. A todo list, a single-function utility,
 ## Prerequisite
 ### Code Style Config
 
-At the start of this skill, check if `.agents/config/code-style.md` exists in the
+At the start of this skill, check if `.agents/rules/code-style.md` exists in the
 project root. If it does, read it and apply its conventions throughout this skill's
 execution — file naming, directory structure, component patterns, etc.
 
