@@ -86,12 +86,12 @@ Ask the user if the result looks right. If not, revise the fragment and re-push 
 4. Write fragment:
 
 ```html
-<section title="Admin Dashboard">
-  <nav title="Admin Dashboard">
+<hd-section title="Admin Dashboard">
+  <hd-nav title="Admin Dashboard">
     <a href="#">Users</a>
     <a href="#">Revenue</a>
     <a href="#">Settings</a>
-  </nav>
+  </hd-nav>
 
   <div class="grid grid-cols-3 gap-4">
     <hd-stat label="Active users" value="1,234" delta="+5%"></hd-stat>
@@ -103,7 +103,7 @@ Ask the user if the result looks right. If not, revise the fragment and re-push 
     <hd-field label="Filter by name" size="sm"></hd-field>
     <!-- user list placeholder -->
   </hd-card>
-</section>
+</hd-section>
 ```
 
 5. Push to dev-server (or snapshot per target).
@@ -117,7 +117,7 @@ Ask the user if the result looks right. If not, revise the fragment and re-push 
 1. Announce.
 2. Read the spec to understand its structure.
 3. Read `skills/visualization-components.md`.
-4. Write fragment using `<section>`, `<hd-ref>` for source material, `<hd-callout>` for EN/translation notes, `<hd-card tag="BLOCK N">` for numbered blocks, `<hd-flow>` for process flows, etc. — matching the spec's content.
+4. Write fragment using `<hd-section>`, `<hd-ref>` for source material, `<hd-callout>` for EN/translation notes, `<hd-card tag="BLOCK N">` for numbered blocks, `<hd-flow>` for process flows, etc. — matching the spec's content.
 5. Save the fragment, run snapshot tool → standalone file.
 6. Share the output path.
 

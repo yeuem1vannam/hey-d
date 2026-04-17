@@ -10,7 +10,7 @@
 
 **Trigger:** During Plan 1 execution, `customElements.define()` rejected unprefixed tag names like `card`, `field`, `flow` etc. — the Web Components spec requires a hyphen in custom element names (forward-compat protection against future native HTML elements).
 
-**Resolution:** All 18 component tags renamed to `hd-` prefix (`hd-card`, `hd-field`, `hd-flow`, etc.). Native HTML elements (`<section>`, `<nav>`, `<code>`) remain unprefixed since they're decorated via MutationObserver, not custom-element registration.
+**Resolution:** All 18 component tags renamed to `hd-` prefix (`hd-card`, `hd-field`, `hd-flow`, `hd-section`, `hd-nav`, `hd-code`, etc.). Applied uniformly — no exceptions. Components that overlap semantically with native HTML (section, nav) apply equivalent ARIA roles for accessibility.
 
 **Scope:** Tag names in catalog tables + examples throughout this doc. Semantics and component behavior unchanged.
 
@@ -42,7 +42,7 @@ This system eliminates that boilerplate: a pre-built component library (18 Web C
                ┌────────────────────────────────┐
   AI writes →  │   content fragment (.html)      │
                │   <main>                        │
-               │     <section><hd-card>...</hd-card>   │
+               │     <hd-section><hd-card>...</hd-card>   │
                │     <hd-flow>...</hd-flow>            │
                │   </main>                       │
                └────────────────────────────────┘
@@ -149,9 +149,9 @@ Organized into 5 categories. All tags are lowercase, unprefixed, use Light DOM.
 
 | Tag | Purpose | Key attrs | Slots |
 |-----|---------|-----------|-------|
-| `<section>` | Top-level page/spec section | `title`, `subtitle`, `id` | default (content) |
+| `<hd-section>` | Top-level page/spec section | `title`, `subtitle`, `id` | default (content) |
 | `<hd-card>` | Content container | `title`, `tag` (optional badge text) | default |
-| `<nav>` | Top nav bar | `title` | default (nav links) |
+| `<hd-nav>` | Top nav bar | `title` | default (nav links) |
 | `<hd-tabs>` / `<hd-tab>` | Tab switcher (supports nested sub-tabs) | `<hd-tab>` accepts: `label`, `active`, `badge` | each `<hd-tab>` holds content |
 
 ```html
@@ -223,7 +223,7 @@ Organized into 5 categories. All tags are lowercase, unprefixed, use Light DOM.
 
 | Tag | Purpose | Key attrs | Slots |
 |-----|---------|-----------|-------|
-| `<hd-toc>` | Table of contents | `auto` (generates from `<section>`s), or manual list inside | default (optional manual entries) |
+| `<hd-toc>` | Table of contents | `auto` (generates from `<hd-section>`s), or manual list inside | default (optional manual entries) |
 | `<code>` | Syntax-highlighted code block | `language` (e.g. `ts`, `json`, `bash`) | default (code content) |
 
 ### Composition over new components
@@ -315,7 +315,7 @@ Three integration points — one shared reference doc, one update to existing sk
 Single source of truth for the 18 components. Contains:
 
 - Catalog (tag, attrs, slots, visual example per component)
-- Composition patterns (e.g., "spec doc = `<section>` containing `<hd-ref>` + `<hd-callout>` + `<hd-card>`s + `<hd-flow>`s")
+- Composition patterns (e.g., "spec doc = `<hd-section>` containing `<hd-ref>` + `<hd-callout>` + `<hd-card>`s + `<hd-flow>`s")
 - Tailwind utility guidance ("use `flex gap-4` before asking for a new component")
 - Don'ts ("don't write raw `<div class="fe2-header">`... use `<hd-flow>`")
 

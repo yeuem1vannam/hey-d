@@ -13,7 +13,7 @@
 
     <hd-toc auto></hd-toc>
 
-    <section title="Layout" id="layout" subtitle="Page-level structural components.">
+    <hd-section title="Layout" id="layout" subtitle="Page-level structural components.">
 
       <hd-card title="A simple card">
         <p>Card body. Cards are the main content containers.</p>
@@ -23,11 +23,11 @@
         <p>The <code>tag</code> attribute renders a small badge above the title. Useful for labeling sections or items.</p>
       </hd-card>
 
-      <nav title="My App">
+      <hd-nav title="My App">
         <a href="#" style="margin-right: 1rem;">Home</a>
         <a href="#" style="margin-right: 1rem;">About</a>
         <a href="#">Contact</a>
-      </nav>
+      </hd-nav>
 
       <hd-tabs>
         <hd-tab label="First" active>
@@ -41,9 +41,9 @@
         </hd-tab>
       </hd-tabs>
 
-    </section>
+    </hd-section>
 
-    <section title="Content" id="content" subtitle="Inline content and note-style elements.">
+    <hd-section title="Content" id="content" subtitle="Inline content and note-style elements.">
 
       <hd-card title="Fields">
         <hd-field label="Name" size="sm"></hd-field>
@@ -85,9 +85,9 @@
         </hd-prompt>
       </hd-card>
 
-    </section>
+    </hd-section>
 
-    <section title="Flow" id="flow" subtitle="Sequential and spatial flow components.">
+    <hd-section title="Flow" id="flow" subtitle="Sequential and spatial flow components.">
 
       <hd-card title="Steps">
         <hd-steps>
@@ -128,9 +128,9 @@
         </hd-matrix>
       </hd-card>
 
-    </section>
+    </hd-section>
 
-    <section title="Decision" id="decision" subtitle="Decision documentation components.">
+    <hd-section title="Decision" id="decision" subtitle="Decision documentation components.">
 
       <hd-approach title="Path 1 — the simple approach">
         <p>Description of Path 1...</p>
@@ -152,29 +152,29 @@
         <p>Description of Path 3...</p>
       </hd-approach>
 
-    </section>
+    </hd-section>
 
-    <section title="Document" id="document" subtitle="Document-specific components for specs and references.">
+    <hd-section title="Document" id="document" subtitle="Document-specific components for specs and references.">
 
       <hd-card title="Code block">
-        <code language="typescript">// A simple greeting function
+        <hd-code language="typescript">// A simple greeting function
 function greet(name: string): string {
   return `Hello, ${name}!`;
 }
 
 const message = greet("world");
-console.log(message);</code>
+console.log(message);</hd-code>
       </hd-card>
 
       <hd-card title="Code (JSON)">
-        <code language="json">{
+        <hd-code language="json">{
   "name": "hey-d",
   "version": "5.0.7-d.5",
   "description": "Skills library for AI coding agents"
-}</code>
+}</hd-code>
       </hd-card>
 
-    </section>
+    </hd-section>
 
   </main>
 </body>

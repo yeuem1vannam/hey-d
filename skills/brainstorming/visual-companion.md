@@ -164,12 +164,12 @@ You can mix both in one fragment: visualization components for the design, `<div
 ### Minimal visualization example
 
 ```html
-<section title="Dashboard mockup" subtitle="For the admin panel">
+<hd-section title="Dashboard mockup" subtitle="For the admin panel">
   <hd-card title="System health">
     <hd-stat label="Uptime" value="99.9%"></hd-stat>
     <hd-stat label="Active users" value="1,234" delta="+5%"></hd-stat>
   </hd-card>
-</section>
+</hd-section>
 ```
 
 For the full component list, patterns, and composition guidance: [visualization-components.md](../visualization-components.md).
@@ -227,11 +227,11 @@ Quick mapping from old ad-hoc CSS classes to components:
 | `.mockup` / `.mockup-header` / `.mockup-body` | `<hd-card title="...">` |
 | `.split` (side-by-side) | `<hd-compare label-a="..." label-b="...">` with `slot="a"` and `slot="b"` |
 | `.pros-cons` | `<hd-tradeoff>` with `slot="pros"` and `slot="cons"` |
-| `.mock-nav` / `.mock-sidebar` / `.mock-content` | `<nav title="...">`, Tailwind `grid grid-cols-[200px_1fr]`, `<hd-card>` |
+| `.mock-nav` / `.mock-sidebar` / `.mock-content` | `<hd-nav title="...">`, Tailwind `grid grid-cols-[200px_1fr]`, `<hd-card>` |
 | `.mock-button` | plain `<button>` + Tailwind utilities, or compose with `<hd-card>` |
 | `.mock-input` / `.placeholder` | `<hd-field label="..." size="sm|md|lg" placeholder="...">` |
 | `.label` (small uppercase) | `<hd-tag>` or `<hd-tag variant="accent">` |
-| `.subtitle` | `<section subtitle="...">` (on the section) or `<p class="text-gray-500">` |
+| `.subtitle` | `<hd-section subtitle="...">` (on the section) or `<p class="text-gray-500">` |
 
 The hd-* components are available whenever the visualization infrastructure loads them — which is all three modes (standalone snapshot, brainstorm-server dev, cloud). Prefer them over hand-rolled markup.
 
@@ -239,7 +239,7 @@ The hd-* components are available whenever the visualization infrastructure load
 
 - `h2` — page title
 - `h3` — section heading
-- `<section title="..." subtitle="...">` — auto-generates title + subtitle without needing raw `h2`
+- `<hd-section title="..." subtitle="...">` — auto-generates title + subtitle without needing raw `h2`
 
 ## Browser Events Format
 

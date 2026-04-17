@@ -38,9 +38,12 @@ main { display: block; max-width: 1180px; margin: 0 auto; padding: 32px; }
 
 /* ============================ Components ============================ */
 
-/* section */
-section[title] { margin-bottom: var(--s-8); padding-top: var(--s-4); }
-section[title]:not(:first-of-type) { border-top: 4px solid var(--accent); }
+/* hd-section */
+hd-section { display: block; margin-bottom: var(--s-8); padding-top: var(--s-4); }
+hd-section:not(:first-of-type) { border-top: 4px solid var(--accent); }
+
+/* hd-nav */
+hd-nav { display: block; margin-bottom: var(--s-4); }
 
 /* card */
 hd-card {
@@ -143,8 +146,8 @@ hd-approach[selected] { border-color: var(--accent-2); background: #F2F8F3; }
 /* tradeoff */
 hd-tradeoff { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); margin-top: var(--s-2); }
 
-/* code */
-code[language], pre.code {
+/* hd-code */
+hd-code {
   display: block;
   background: var(--accent);
   color: #C7E8DB;
@@ -153,6 +156,8 @@ code[language], pre.code {
   font-family: ui-monospace, monospace;
   font-size: 0.78rem;
   overflow-x: auto;
+  white-space: pre;
+  margin: var(--s-2) 0;
 }
 
 /* tabs */

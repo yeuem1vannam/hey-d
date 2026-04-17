@@ -9,14 +9,14 @@ description: Reference catalog of the 18 hey-d visualization components. Loaded 
 
 **When the wrapper is already in place** (dev-server serving, snapshot tool, cloud page), write HTML fragments using these components. **Do NOT hand-craft HTML boilerplate** (no `<div>` with Tailwind utility soup, no custom CSS) unless composition truly needs it.
 
-**All tags are prefixed `hd-`** (Web Components spec requires a hyphen). Native HTML elements (`<section>`, `<nav>`, `<code>`) are enhanced in place with special attributes — no prefix needed.
+**All 18 tags are prefixed `hd-`** — one consistent naming rule, no exceptions. The Web Components spec requires a hyphen in custom element names; we use that to keep the API uniform.
 
 ## Cheat sheet (scan first)
 
 **Layout** — page structure
-- `<section title="..." subtitle="...">` — page/spec section, auto h2+subtitle
+- `<hd-section title="..." subtitle="...">` — page/spec section, auto h2+subtitle
 - `<hd-card title="..." tag="...">` — content container; `tag` is optional badge text
-- `<nav title="...">` — nav bar with title
+- `<hd-nav title="...">` — nav bar with title
 - `<hd-tabs>` + `<hd-tab label="..." active badge="...">` — tab switcher
 
 **Content** — inline pieces
@@ -38,8 +38,8 @@ description: Reference catalog of the 18 hey-d visualization components. Loaded 
 - `<hd-tradeoff><ul slot="pros">...</ul><ul slot="cons">...</ul></hd-tradeoff>` — pros/cons side-by-side
 
 **Document** — doc-level
-- `<hd-toc auto>` — auto-generated from `<section title>` children
-- `<code language="ts|json|bash|...">...</code>` — native `<code>`, enhanced with dark styling
+- `<hd-toc auto>` — auto-generated from `<hd-section title>` children
+- `<hd-code language="ts|json|bash|...">...</hd-code>` — native `<code>`, enhanced with dark styling
 
 **Compose with Tailwind** for grids (`grid grid-cols-3 gap-4`), spacing (`mb-6`, `p-4`), typography (`font-semibold`) — don't invent new components.
 
@@ -47,9 +47,9 @@ description: Reference catalog of the 18 hey-d visualization components. Loaded 
 
 ### 🏗 Layout (4)
 
-- `<section title="..." subtitle="...">` — top-level page/spec section. Auto-generates an `<h2>` + subtitle paragraph.
+- `<hd-section title="..." subtitle="...">` — top-level page/spec section. Auto-generates an `<h2>` + subtitle paragraph.
 - `<hd-card title="..." tag="...">` — content container. Optional tag badge above title.
-- `<nav title="...">` — nav bar with title. Children are nav links.
+- `<hd-nav title="...">` — nav bar with title. Children are nav links.
 - `<hd-tabs>` / `<hd-tab label="..." active badge="...">` — tab switcher. Put each `<hd-tab>` inside `<hd-tabs>`.
 
 ### 📝 Content (6)
@@ -75,8 +75,8 @@ description: Reference catalog of the 18 hey-d visualization components. Loaded 
 
 ### 📄 Document (2)
 
-- `<hd-toc auto>` — auto-generated table of contents. Scans all `<section title="...">` in the document and builds a linked list. Use `<hd-toc>` without `auto` if you want to write entries manually.
-- `<code language="ts|json|bash|...">...</code>` — native `<code>` element enhanced with syntax-class wrapping. Dark background, monospace.
+- `<hd-toc auto>` — auto-generated table of contents. Scans all `<hd-section title="...">` in the document and builds a linked list. Use `<hd-toc>` without `auto` if you want to write entries manually.
+- `<hd-code language="ts|json|bash|...">...</hd-code>` — code block with dark background, monospace, preserved whitespace. `language` attribute stored as `data-language` for future syntax-highlighting hooks.
 
 ## Composition patterns
 
@@ -85,7 +85,7 @@ description: Reference catalog of the 18 hey-d visualization components. Loaded 
 ```html
 <hd-toc auto></hd-toc>
 
-<section title="Feature F v2 — Values & Thinking Patterns" subtitle="Redesigned form with 5-column flow">
+<hd-section title="Feature F v2 — Values & Thinking Patterns" subtitle="Redesigned form with 5-column flow">
 
   <hd-ref label="REFERENCE — original docx (F)" source="docs/original.md">
     <h4>F ③価値観・思考の癖</h4>
@@ -104,13 +104,13 @@ description: Reference catalog of the 18 hey-d visualization components. Loaded 
       <hd-flow-item label="影響" highlight>Impact</hd-flow-item>
     </hd-flow>
   </hd-card>
-</section>
+</hd-section>
 ```
 
 ### A design decision
 
 ```html
-<section title="How to render the matrix">
+<hd-section title="How to render the matrix">
   <hd-approach title="Path 1 — plain matrixdropdown">
     <p>Description...</p>
     <hd-tradeoff>
@@ -126,16 +126,16 @@ description: Reference catalog of the 18 hey-d visualization components. Loaded 
       <ul slot="cons"><li>One-time infra cost</li></ul>
     </hd-tradeoff>
   </hd-approach>
-</section>
+</hd-section>
 ```
 
 ### A UI mockup
 
 ```html
-<section title="Dashboard mockup">
-  <nav title="Admin Dashboard">
+<hd-section title="Dashboard mockup">
+  <hd-nav title="Admin Dashboard">
     <a href="#">Home</a> <a href="#">Users</a> <a href="#">Settings</a>
-  </nav>
+  </hd-nav>
 
   <div class="grid grid-cols-3 gap-4">
     <hd-stat label="Active users" value="1,234" delta="+5%"></hd-stat>
@@ -151,7 +151,7 @@ description: Reference catalog of the 18 hey-d visualization components. Loaded 
       <hd-card title="Active alerts">...</hd-card>
     </hd-tab>
   </hd-tabs>
-</section>
+</hd-section>
 ```
 
 ## Composition over new components
@@ -196,12 +196,12 @@ For these, fall back to raw HTML + Tailwind.
 | Compare multiple options | `<hd-approach>` × N with `selected` on the chosen one |
 | Show a 2D categorization | `<hd-matrix>` with 4 slots |
 | Explain a sequential process | `<hd-steps>` for short lists, `<hd-flow>` for columnar with arrows |
-| Illustrate a data structure | `<code language="json">` blocks |
+| Illustrate a data structure | `<hd-code language="json">` blocks |
 
 ## Notes on native elements
 
-- `<section title="X" subtitle="Y">` — the `title` and `subtitle` attributes trigger the library to auto-insert `<h2>` and subtitle paragraph. Nest anything inside.
-- `<nav title="X">` — same pattern; `title` triggers a header.
-- `<code language="ts">` — the `language` attribute triggers the library to wrap the code in a `<pre class="code">` for syntax styling.
+- `<hd-section title="X" subtitle="Y">` — the `title` and `subtitle` attributes trigger the library to auto-insert `<h2>` and subtitle paragraph. Nest anything inside.
+- `<hd-nav title="X">` — same pattern; `title` triggers a header.
+- `<hd-code language="ts">` — the `language` attribute triggers the library to wrap the code in a `<pre class="code">` for syntax styling.
 
-These work in addition to plain HTML — you can write `<section>content</section>` without `title` and nothing special happens.
+These work in addition to plain HTML — you can write `<hd-section>content</hd-section>` without `title` and nothing special happens.

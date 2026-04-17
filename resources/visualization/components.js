@@ -1,12 +1,12 @@
 /**
  * hey-d visualization components — Web Components library
  *
- * 18 components in 5 categories:
- *   Layout (4):   section, card, nav, tabs/tab
- *   Content (6):  field, stat, tag, callout, ref, prompt
- *   Flow (4):     steps/step, flow/flow-item, compare, matrix
- *   Decision (2): approach, tradeoff
- *   Document (2): toc, code
+ * 18 components in 5 categories, all hd-* prefixed for consistency:
+ *   Layout (4):   hd-section, hd-card, hd-nav, hd-tabs/hd-tab
+ *   Content (6):  hd-field, hd-stat, hd-tag, hd-callout, hd-ref, hd-prompt
+ *   Flow (4):     hd-steps/hd-step, hd-flow/hd-flow-item, hd-compare, hd-matrix
+ *   Decision (2): hd-approach, hd-tradeoff
+ *   Document (2): hd-toc, hd-code
  *
  * All components use Light DOM (no shadow), so parent styles apply normally.
  * Distributed as a single file for easy inlining in standalone snapshots.
@@ -17,39 +17,47 @@
 
   // ================== LAYOUT ==================
 
-  // <section> is a native HTML5 element — decorate via MutationObserver.
-  // Authors write: <section title="..." subtitle="...">...</section>
-  function decorateSection(el) {
-    if (el.dataset.heydDecorated) return;
-    el.dataset.heydDecorated = '1';
-    const title = el.getAttribute('title');
-    const subtitle = el.getAttribute('subtitle');
-    if (title) {
-      const h2 = document.createElement('h2');
-      h2.className = 'section-title';
-      h2.textContent = title;
-      el.prepend(h2);
-    }
-    if (subtitle) {
-      const p = document.createElement('p');
-      p.className = 'section-subtitle';
-      p.textContent = subtitle;
-      el.insertBefore(p, el.children[1] || null);
+  // <hd-section> — page/spec section with auto-generated h2 + subtitle.
+  // role="region" provides semantic-HTML equivalence for accessibility.
+  class HeydSection extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.heydDecorated) return;
+      this.dataset.heydDecorated = '1';
+      this.setAttribute('role', 'region');
+      const title = this.getAttribute('title');
+      const subtitle = this.getAttribute('subtitle');
+      if (title) {
+        const h2 = document.createElement('h2');
+        h2.className = 'section-title';
+        h2.textContent = title;
+        this.prepend(h2);
+      }
+      if (subtitle) {
+        const p = document.createElement('p');
+        p.className = 'section-subtitle';
+        p.textContent = subtitle;
+        this.insertBefore(p, this.children[1] || null);
+      }
     }
   }
+  customElements.define('hd-section', HeydSection);
 
-  // <nav> is also native — same pattern.
-  function decorateNav(el) {
-    if (el.dataset.heydDecorated) return;
-    el.dataset.heydDecorated = '1';
-    const title = el.getAttribute('title');
-    if (title) {
-      const h1 = document.createElement('h1');
-      h1.className = 'nav-title';
-      h1.textContent = title;
-      el.prepend(h1);
+  // <hd-nav> — nav bar with title. role="navigation" for accessibility.
+  class HeydNav extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.heydDecorated) return;
+      this.dataset.heydDecorated = '1';
+      this.setAttribute('role', 'navigation');
+      const title = this.getAttribute('title');
+      if (title) {
+        const h1 = document.createElement('h1');
+        h1.className = 'nav-title';
+        h1.textContent = title;
+        this.prepend(h1);
+      }
     }
   }
+  customElements.define('hd-nav', HeydNav);
 
   // <card> — custom element with optional tag badge + title
   class HeydCard extends HTMLElement {
@@ -113,29 +121,6 @@
 
   class HeydTab extends HTMLElement {}
   customElements.define('hd-tab', HeydTab);
-
-  // Decorate native elements on DOM ready and as new nodes are added
-  const nativeObserver = new MutationObserver(mutations => {
-    for (const m of mutations) {
-      for (const node of m.addedNodes) {
-        if (node.nodeType !== 1) continue;
-        if (node.tagName === 'SECTION' && node.hasAttribute('title')) decorateSection(node);
-        if (node.tagName === 'NAV' && node.hasAttribute('title')) decorateNav(node);
-      }
-    }
-  });
-
-  function init() {
-    document.querySelectorAll('section[title]').forEach(decorateSection);
-    document.querySelectorAll('nav[title]').forEach(decorateNav);
-    nativeObserver.observe(document.body, { childList: true, subtree: true });
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
 
   // ================== CONTENT ==================
 
@@ -431,14 +416,14 @@
 
   // ================== DOCUMENT ==================
 
-  // <toc> — auto-generated from <section title> OR manual content
+  // <hd-toc> — auto-generated from <hd-section title> OR manual content
   class HeydToc extends HTMLElement {
     connectedCallback() {
       if (this.dataset.heydDecorated) return;
       this.dataset.heydDecorated = '1';
       if (this.hasAttribute('auto') && !this.hasChildNodes()) {
         queueMicrotask(() => {
-          const sections = document.querySelectorAll('section[title]');
+          const sections = document.querySelectorAll('hd-section[title]');
           const ol = document.createElement('ol');
           sections.forEach(s => {
             const id = s.id || s.getAttribute('title').toLowerCase().replace(/\s+/g, '-');
@@ -458,35 +443,16 @@
   }
   customElements.define('hd-toc', HeydToc);
 
-  // <code language="..."> — native element decorated to wrap in <pre>
-  function decorateCode(el) {
-    if (el.dataset.heydDecorated) return;
-    el.dataset.heydDecorated = '1';
-    if (el.parentElement?.tagName !== 'PRE') {
-      const pre = document.createElement('pre');
-      pre.className = 'code';
-      pre.setAttribute('data-language', el.getAttribute('language') || '');
-      el.parentNode.insertBefore(pre, el);
-      pre.appendChild(el);
+  // <hd-code language="..."> — displayed as a styled code block.
+  // Preserves whitespace and shows monospace with a dark background.
+  class HeydCode extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.heydDecorated) return;
+      this.dataset.heydDecorated = '1';
+      const language = this.getAttribute('language');
+      if (language) this.setAttribute('data-language', language);
     }
   }
-  const codeObserver = new MutationObserver(mutations => {
-    for (const m of mutations) {
-      for (const node of m.addedNodes) {
-        if (node.nodeType === 1 && node.tagName === 'CODE' && node.hasAttribute('language')) {
-          decorateCode(node);
-        }
-      }
-    }
-  });
-  function initCode() {
-    document.querySelectorAll('code[language]').forEach(decorateCode);
-    codeObserver.observe(document.body, { childList: true, subtree: true });
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initCode);
-  } else {
-    initCode();
-  }
+  customElements.define('hd-code', HeydCode);
 
 })();
