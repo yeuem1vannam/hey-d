@@ -250,4 +250,133 @@
   }
   customElements.define('prompt', HeydPrompt);
 
+  // ================== FLOW ==================
+
+  // <steps> — numbered <step> children
+  class HeydSteps extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.heydDecorated) return;
+      this.dataset.heydDecorated = '1';
+      const steps = this.querySelectorAll(':scope > step');
+      steps.forEach((step, i) => {
+        if (step.dataset.heydNumbered) return;
+        step.dataset.heydNumbered = '1';
+        const num = step.getAttribute('num') || (i + 1);
+        const circle = document.createElement('span');
+        circle.className = 'step-num';
+        circle.textContent = num;
+        step.prepend(circle);
+      });
+    }
+  }
+  customElements.define('steps', HeydSteps);
+
+  class HeydStep extends HTMLElement {}
+  customElements.define('step', HeydStep);
+
+  // <flow> — multi-column with → arrows between flow-items
+  class HeydFlow extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.heydDecorated) return;
+      this.dataset.heydDecorated = '1';
+      const items = Array.from(this.querySelectorAll(':scope > flow-item'));
+      const cols = items.length;
+      const colDef = items.map((_, i) => i < cols - 1 ? '1fr 20px' : '1fr').join(' ');
+      this.style.gridTemplateColumns = colDef;
+      items.forEach((item, i) => {
+        if (i < cols - 1) {
+          const arrow = document.createElement('div');
+          arrow.className = 'flow-arrow';
+          arrow.textContent = '→';
+          item.insertAdjacentElement('afterend', arrow);
+        }
+        const label = item.getAttribute('label');
+        if (label && !item.dataset.heydLabeled) {
+          item.dataset.heydLabeled = '1';
+          const l = document.createElement('div');
+          l.className = 'flow-item-label';
+          l.textContent = label;
+          item.prepend(l);
+        }
+      });
+    }
+  }
+  customElements.define('flow', HeydFlow);
+
+  class HeydFlowItem extends HTMLElement {}
+  customElements.define('flow-item', HeydFlowItem);
+
+  // <compare> — two-column via named slots
+  class HeydCompare extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.heydDecorated) return;
+      this.dataset.heydDecorated = '1';
+      const labelA = this.getAttribute('label-a');
+      const labelB = this.getAttribute('label-b');
+      const slotA = this.querySelector('[slot="a"]');
+      const slotB = this.querySelector('[slot="b"]');
+      const colA = document.createElement('div');
+      colA.className = 'compare-col compare-a';
+      if (labelA) colA.innerHTML = `<h4 class="compare-label">${labelA}</h4>`;
+      if (slotA) colA.appendChild(slotA);
+      const colB = document.createElement('div');
+      colB.className = 'compare-col compare-b';
+      if (labelB) colB.innerHTML = `<h4 class="compare-label">${labelB}</h4>`;
+      if (slotB) colB.appendChild(slotB);
+      this.innerHTML = '';
+      this.appendChild(colA);
+      this.appendChild(colB);
+    }
+  }
+  customElements.define('compare', HeydCompare);
+
+  // <matrix> — 2×2 quadrant with axis labels
+  class HeydMatrix extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.heydDecorated) return;
+      this.dataset.heydDecorated = '1';
+      const axisTop = (this.getAttribute('axis-top') || '').split('|');
+      const axisLeft = (this.getAttribute('axis-left') || '').split('|');
+      const quadrants = { q1: null, q2: null, q3: null, q4: null };
+      for (const k of Object.keys(quadrants)) {
+        quadrants[k] = this.querySelector(`[slot="${k}"]`);
+      }
+      this.innerHTML = '';
+      if (axisTop[0]) {
+        const a = document.createElement('div');
+        a.className = 'matrix-axis matrix-axis-top-left';
+        a.textContent = axisTop[0];
+        this.appendChild(a);
+      }
+      if (axisTop[1]) {
+        const a = document.createElement('div');
+        a.className = 'matrix-axis matrix-axis-top-right';
+        a.textContent = axisTop[1];
+        this.appendChild(a);
+      }
+      if (axisLeft[0]) {
+        const a = document.createElement('div');
+        a.className = 'matrix-axis matrix-axis-left-top';
+        a.textContent = axisLeft[0];
+        this.appendChild(a);
+      }
+      if (axisLeft[1]) {
+        const a = document.createElement('div');
+        a.className = 'matrix-axis matrix-axis-left-bottom';
+        a.textContent = axisLeft[1];
+        this.appendChild(a);
+      }
+      ['q3', 'q1', 'q4', 'q2'].forEach(name => {
+        const el = quadrants[name];
+        if (el) {
+          const cell = document.createElement('div');
+          cell.className = `matrix-cell matrix-${name}`;
+          cell.appendChild(el);
+          this.appendChild(cell);
+        }
+      });
+    }
+  }
+  customElements.define('matrix', HeydMatrix);
+
 })();
