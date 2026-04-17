@@ -212,6 +212,22 @@ You MUST complete each phase before proceeding to the next.
 
    This is NOT a failed hypothesis - this is a wrong architecture.
 
+## When to Dispatch external-researcher
+
+During hypothesis-testing (Phase 2 or Phase 3), if the bug hinges on how a third-party library behaves — an undocumented API shape, a quirk between docs and source, platform-specific behavior — dispatch the `external-researcher` subagent (`agents/external-researcher.md`).
+
+Give it a narrow question with context about the observed behavior. If the answer requires reading the library source on disk, say so explicitly in the prompt (e.g., "check node_modules/express/lib/router.js for how this middleware is ordered"). The agent will cross-check docs against source and report discrepancies in CAVEATS.
+
+**Typical prompts:**
+- "Does library X's `foo()` method swallow errors in its async path? Docs are ambiguous; check node_modules/X/ source."
+- "What's the actual HTTP status code when <framework> hits a request timeout? Spec vs source disagree."
+
+Use the agent's answer to form a new hypothesis, then verify against the user's own code — that verification is back in your territory, not the research agent's.
+
+**When NOT to use it:**
+- Questions about the user's own code → that's part of debugging, not research
+- "Why is MY code broken?" — if the answer lives in user code, the root cause is there, not in a library
+
 ## Red Flags - STOP and Follow Process
 
 If you catch yourself thinking:

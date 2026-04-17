@@ -29,6 +29,23 @@ Check if `.agents/config/commits.md` exists in the project root. If it does, rea
 
 If the spec covers multiple independent subsystems, it should have been broken into sub-project specs during brainstorming. If it wasn't, suggest breaking this into separate plans — one per subsystem. Each plan should produce working, testable software on its own.
 
+## When to Dispatch external-researcher
+
+If a task in the plan depends on a library API, framework pattern, or standard you're not 100% certain of, dispatch the `external-researcher` subagent (`agents/external-researcher.md`) to confirm BEFORE writing the plan's code snippets.
+
+Why this matters: incorrect API calls, wrong type signatures, or imagined methods in a plan cascade into every task that references them. The cost of verifying upfront is small; the cost of discovering the mistake mid-execution is every dependent task needing revision.
+
+**Typical prompts:**
+- "Does `<library>.<method>` take an options object as the second argument or a callback? Plan uses it in Task 3."
+- "Is `<framework>`'s hook `useX` still the recommended API as of <year>, or has it been deprecated?"
+- "What's the exact shape of the response from `<API>`'s `/<endpoint>` endpoint? Need it to write the type."
+
+Dispatch for any claim you'd be embarrassed to have wrong in a written plan. Use the agent's answer to ground the code snippets in your tasks.
+
+**When NOT to use it:**
+- Questions about the user's own code — you should have that context from brainstorming's spec
+- Design decisions — the plan captures decisions already made, it doesn't make them
+
 ## File Structure
 
 Before defining tasks, map out which files will be created or modified and what each one is responsible for. This is where decomposition decisions get locked in.

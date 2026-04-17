@@ -146,6 +146,22 @@ Wait for the user's response. If they request changes, make them and re-run the 
 - Invoke the writing-plans skill to create a detailed implementation plan
 - Do NOT invoke any other skill. writing-plans is the next step.
 
+## When to Dispatch external-researcher
+
+During the exploration phase, if the user's idea depends on a specific library, framework, API, or standard you need to verify, dispatch the `external-researcher` subagent (`agents/external-researcher.md`) rather than doing web lookups inline. The agent can read both docs AND library source (node_modules, vendored deps), and returns a short synthesis with sources and a confidence signal.
+
+**When to use it:**
+- "How does library X handle Y?" — verify assumptions before designing around them
+- "Is there a standard for Z?" — check before proposing an ad-hoc design
+- "What's the current best practice for N?" — external context the user may not have
+
+**When NOT to use it:**
+- Questions about the user's own code → use Explore instead
+- Opinion/judgment calls ("should we use library X or Y?") — the agent cites, it does not decide
+- Long-form reports or multi-topic surveys — the agent answers one narrow question per dispatch
+
+Keeps the design conversation clean of raw docs and search noise.
+
 ## Key Principles
 
 - **One question at a time** - Don't overwhelm with multiple questions
