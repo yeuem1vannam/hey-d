@@ -169,3 +169,37 @@ toc {
   padding: var(--s-4) var(--s-5);
   margin-bottom: var(--s-5);
 }
+
+/* ============================ Decorator classes ============================ */
+
+.section-title { margin: var(--s-4) 0 var(--s-1); font-size: 1.35rem; color: var(--accent); }
+.section-subtitle { margin: 0 0 var(--s-4); color: var(--muted); font-size: 0.92rem; }
+.card-title { margin: var(--s-1) 0 var(--s-2); font-size: 1rem; }
+.nav-title { margin: 0 0 var(--s-4); font-size: 1.2rem; color: var(--accent); }
+.field-label { font-size: 0.72rem; font-weight: 600; color: var(--accent); margin-bottom: var(--s-1); }
+.stat-label { font-size: 0.75rem; color: var(--muted); margin-bottom: var(--s-1); }
+.stat-value { font-size: 1.6rem; font-weight: 700; color: var(--fg); line-height: 1; }
+.stat-delta { font-size: 0.72rem; margin-top: var(--s-1); }
+.stat-delta.positive { color: var(--accent-2); }
+.stat-delta.negative { color: #8a5050; }
+.callout-label { font-style: normal; color: var(--accent); }
+.ref-label {
+  display: inline-block; background: var(--ref-label-bg); color: #fff;
+  font-size: 0.68rem; letter-spacing: 0.08em; padding: 3px 10px;
+  border-radius: var(--r-sm); margin-bottom: var(--s-3); text-transform: uppercase;
+}
+.ref-source { font-size: 0.78rem; color: #7a6f3a; margin: var(--s-1) 0 var(--s-3); }
+prompt {
+  display: block; background: #F6F8F8; border-left: 3px solid var(--accent);
+  border-radius: var(--r-sm); padding: var(--s-3) var(--s-4); margin-bottom: var(--s-3);
+}
+.prompt-header { font-size: 0.85rem; color: var(--accent); margin: 0 0 var(--s-2); font-weight: 600; }
+.prompt-label { margin-right: var(--s-1); }
+.tab-bar { display: flex; gap: 0; border-bottom: 1px solid var(--card-border); margin-bottom: var(--s-4); }
+.tab-btn {
+  background: none; border: none; color: var(--muted); font-size: 0.88rem; font-weight: 600;
+  padding: var(--s-3) var(--s-5); cursor: pointer; border-bottom: 2px solid transparent;
+}
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent-2); }
+.tab-btn:hover { color: var(--accent); }
+.badge { display: inline-block; font-size: 0.58rem; font-weight: 700; padding: 2px 6px; border-radius: 3px; margin-right: var(--s-1); }
