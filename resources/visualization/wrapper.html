@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{title}}</title>
+
+  <!--
+    Tailwind — dev-server uses CDN Play for fast iteration; snapshot.js
+    inlines the pre-built tailwind.css for offline-safe standalone files.
+  -->
+  {{tailwind_block}}
+
+  <!-- hey-d theme (plugin default + optional project override) -->
+  {{theme_block}}
+
+  <!-- Components (plugin default + optional project override) -->
+  {{components_block}}
+</head>
+<body>
+  <main>
+    {{content}}
+  </main>
+</body>
+</html>
