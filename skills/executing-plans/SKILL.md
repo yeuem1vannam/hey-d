@@ -16,20 +16,20 @@ Load plan, review critically, execute all tasks, report when complete.
 ## Prerequisite
 ### Code Style Config
 
-Check if `.agents/rules/code-style.md` exists in the project root. If it does, read it and apply its conventions throughout this skill's execution — file naming, directory structure, component patterns, etc. If absent, proceed with no assumptions about code style.
+Check if `.agents/config/code-style.md` exists in the project root. If it does, read it and apply its conventions throughout this skill's execution — file naming, directory structure, component patterns, etc. If absent, proceed with no assumptions about code style.
 
 ### Commit Config
 
-Check if `.agents/rules/commits.md` exists in the project root. If it does, read it and apply its conventions (commit types, scopes, co-author rules, pre-commit commands) when committing. If absent, use standard Conventional Commits defaults with no co-author attribution.
+Check if `.agents/config/commits.md` exists in the project root. If it does, read it and apply its conventions (commit types, scopes, co-author rules, pre-commit commands) when committing. If absent, use standard Conventional Commits defaults with no co-author attribution.
 
-**Never include issue or PR references** (e.g. `#123`) in commit messages unless `.agents/rules/commits.md` explicitly instructs it. Don't infer them from context.
+**Never include issue or PR references** (e.g. `#123`) in commit messages unless `.agents/config/commits.md` explicitly instructs it. Don't infer them from context.
 
 ## The Process
 
 ### Step 0: Verify Branch
 1. Run `git branch --show-current` to check the current branch
 2. Confirm you are on a feature branch (not `main` or `master`)
-3. If `.agents/rules/branches.md` exists, verify the branch name follows its naming convention
+3. If `.agents/config/branches.md` exists, verify the branch name follows its naming convention
 4. If on `main`/`master`: **STOP** — ask the user to switch to a feature branch or use hey-d:using-git-worktrees to create one before proceeding
 
 ### Step 1: Load and Review Plan

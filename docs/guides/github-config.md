@@ -1,6 +1,6 @@
-# `.agents/rules/github.md` Guide
+# `.agents/config/github.md` Guide
 
-Place this file at `.agents/rules/github.md` in your project root to customize how agents create pull requests and address PR review comments.
+Place this file at `.agents/config/github.md` in your project root to customize how agents create pull requests and address PR review comments.
 
 ---
 

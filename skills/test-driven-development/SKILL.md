@@ -16,7 +16,7 @@ Write the test first. Watch it fail. Write minimal code to pass.
 ## Prerequisite
 ### Code Style Config
 
-At the start of this skill, check if `.agents/rules/code-style.md` exists in the
+At the start of this skill, check if `.agents/config/code-style.md` exists in the
 project root. If it does, read it and apply its conventions throughout this skill's
 execution — file naming, directory structure, component patterns, etc.
 

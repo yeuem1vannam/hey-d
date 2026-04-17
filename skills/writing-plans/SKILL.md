@@ -21,9 +21,9 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 ## Prerequisite
 ### Commit Config
 
-Check if `.agents/rules/commits.md` exists in the project root. If it does, read it and apply its conventions (commit types, scopes) when writing commit steps in the plan. If absent, use standard Conventional Commits defaults.
+Check if `.agents/config/commits.md` exists in the project root. If it does, read it and apply its conventions (commit types, scopes) when writing commit steps in the plan. If absent, use standard Conventional Commits defaults.
 
-**Never include issue or PR references** (e.g. `#123`) in commit messages unless `.agents/rules/commits.md` explicitly instructs it. Don't infer them from context.
+**Never include issue or PR references** (e.g. `#123`) in commit messages unless `.agents/config/commits.md` explicitly instructs it. Don't infer them from context.
 
 ## Scope Check
 
