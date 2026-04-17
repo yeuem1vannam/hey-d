@@ -74,6 +74,8 @@ done
 # List of skill tests to run (fast unit tests)
 tests=(
     "test-subagent-driven-development.sh"
+    "test-completion-verifier-agent.sh"
+    "test-external-researcher-agent.sh"
 )
 
 # Integration tests (slow, full execution)
