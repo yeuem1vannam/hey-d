@@ -2,7 +2,7 @@
 
 **Date:** 2026-04-17
 **Status:** Draft
-**Approach:** Named subagent (`agents/verification.md`) dispatched by `verification-before-completion` skill
+**Approach:** Named subagent (`agents/completion-verifier.md`) dispatched by `verification-before-completion` skill
 
 ## Overview
 
@@ -12,9 +12,9 @@ Move this work to a dedicated subagent. The skill's role changes from "follow th
 
 ## Agent Definition
 
-**File:** `agents/verification.md`
+**File:** `agents/completion-verifier.md`
 
-**Model:** `haiku` (parse test output, check requirements against code — does not require deep reasoning)
+**Model:** `sonnet` (running commands and counting test results is mechanical, but requirement-to-code matching often involves semantic reasoning — "does this code satisfy 'handles empty input'?" — where Haiku's false-negative/false-positive rate is too high for the last-gate role this agent plays)
 
 **Role description (for frontmatter):** "Use this agent to gather evidence that a task or plan is actually complete — it runs verification commands, parses output, and checks plan requirements line-by-line against the code. Returns a structured report. Never trust a completion claim that didn't go through this agent."
 
@@ -71,7 +71,7 @@ Restructured from a rules document into a dispatch protocol:
 
 1. Identify verification commands (from project config or caller)
 2. Identify requirements (from plan or inline list)
-3. Dispatch the verification subagent with the inputs above
+3. Dispatch the completion-verifier subagent with the inputs above
 4. Read the report
 5. If `PASS`: proceed
 6. If `FAIL` or `PARTIAL`: STOP, return findings to caller

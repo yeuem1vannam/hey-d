@@ -1,6 +1,6 @@
 ---
 name: verification-before-completion
-description: Use before claiming work is complete — dispatches the verification subagent to gather fresh evidence that tests pass and requirements are met. No completion claims without evidence.
+description: Use before claiming work is complete — dispatches the completion-verifier subagent to gather fresh evidence that tests pass and requirements are met. No completion claims without evidence.
 ---
 
 # Verification Before Completion
@@ -9,7 +9,7 @@ description: Use before claiming work is complete — dispatches the verificatio
 
 ```
 No agent may claim work is complete, fixed, or passing without fresh evidence
-from the verification subagent.
+from the completion-verifier subagent.
 
 This is not a suggestion. This is a protocol enforcement boundary.
 
@@ -40,7 +40,7 @@ Use this skill **BEFORE claiming any of the following:**
 
 ### Step 1: Gather the Four Inputs
 
-The verification subagent's contract is strict. It will emit `STATUS: FAIL` with reason "missing input: <name>" if any of these four inputs is absent. Gather all four before dispatching:
+The completion-verifier subagent's contract is strict. It will emit `STATUS: FAIL` with reason "missing input: <name>" if any of these four inputs is absent. Gather all four before dispatching:
 
 - **Verification commands** — ordered list of shell commands that prove the claim (test suite, typecheck, lint, build, etc.). Read from `.agents/config/commits.md` pre-commit commands when available; otherwise detect from `package.json` / `Makefile` / project conventions, or ask the user.
 - **Requirements source** — either a path to the plan file whose requirements need checking, or an inline bullet list of requirements extracted from the task description.
@@ -49,9 +49,9 @@ The verification subagent's contract is strict. It will emit `STATUS: FAIL` with
 
 If you cannot gather all four, STOP. You do not know enough to verify. Don't guess. Ask the user.
 
-### Step 2: Dispatch the verification subagent
+### Step 2: Dispatch the completion-verifier subagent
 
-Call the verification subagent at `agents/verification.md` (subagent_type: `verification`) with this structure — all four inputs present and clearly labeled:
+Call the completion-verifier subagent at `agents/completion-verifier.md` (subagent_type: `completion-verifier`) with this structure — all four inputs present and clearly labeled:
 
 ```
 I need verification that [claim].
@@ -121,7 +121,7 @@ You will see:
 
 ## Agent Contract Summary
 
-When you dispatch the verification subagent, these promises are ironclad:
+When you dispatch the completion-verifier subagent, these promises are ironclad:
 
 | Promise | What It Means |
 |---------|---------------|
@@ -154,7 +154,7 @@ From the contract:
 - **Missing requirements shipped.** Incomplete features wasted time.
 - **False completion → redirect → rework.** Visible in transcripts. Avoidable with evidence.
 
-The verification subagent is there for one reason: to make dishonesty impossible. Use it.
+The completion-verifier subagent is there for one reason: to make dishonesty impossible. Use it.
 
 ## Integration
 
@@ -163,7 +163,7 @@ The verification subagent is there for one reason: to make dishonesty impossible
 - **hey-d:subagent-driven-development** - After final reviewer, before finishing-a-development-branch
 
 **Dispatches to:**
-- **agents/verification.md** - The verification subagent that runs commands and reports truth
+- **agents/completion-verifier.md** - The completion-verifier subagent that runs commands and reports truth
 
 **Pairs with:**
 - **hey-d:finishing-a-development-branch** - Runs immediately after this skill; finishing assumes verification has produced fresh evidence

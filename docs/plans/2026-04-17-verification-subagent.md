@@ -2,10 +2,10 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use hey-d:subagent-driven-development (recommended) or hey-d:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Convert `verification-before-completion` from a rules document into a dispatch protocol backed by a dedicated Haiku-tier `verification` subagent. Main agent hands off mechanical test-parsing and requirement-checking; context stays clean.
+**Goal:** Convert `verification-before-completion` from a rules document into a dispatch protocol backed by a dedicated Sonnet-tier `completion-verifier` subagent. Main agent hands off mechanical test-parsing and requirement-checking; context stays clean.
 
 **Architecture:** Two-file change.
-1. NEW `agents/verification.md` — named subagent definition (frontmatter + system prompt) with Haiku model, contract-enforced report format.
+1. NEW `agents/completion-verifier.md` — named subagent definition (frontmatter + system prompt) with Haiku model, contract-enforced report format.
 2. REWRITE `skills/verification-before-completion/SKILL.md` — restructure from "follow these rules" into "gather inputs, dispatch the agent, act on the report."
 
 Callers (`executing-plans` Step 3, `subagent-driven-development` before finishing) are unchanged at the interface level — they still say "use hey-d:verification-before-completion". The dispatch happens internal to the skill.
@@ -18,27 +18,27 @@ Callers (`executing-plans` Step 3, `subagent-driven-development` before finishin
 
 | File | Change |
 |------|--------|
-| `agents/verification.md` | CREATE — agent definition (frontmatter + system prompt) |
+| `agents/completion-verifier.md` | CREATE — agent definition (frontmatter + system prompt) |
 | `skills/verification-before-completion/SKILL.md` | REWRITE — dispatch protocol replaces rules document |
 
 No caller changes. No tests (markdown only; validation is manual dispatch in Task 3).
 
 ---
 
-### Task 1: Create `agents/verification.md`
+### Task 1: Create `agents/completion-verifier.md`
 
 **Files:**
-- Create: `agents/verification.md`
+- Create: `agents/completion-verifier.md`
 
 - [ ] **Step 1: Write the agent definition file**
 
-Create `agents/verification.md` with exactly this content:
+Create `agents/completion-verifier.md` with exactly this content:
 
 ````markdown
 ---
-name: verification
+name: completion-verifier
 description: Use this agent to gather evidence that a task or plan is actually complete — it runs verification commands, parses output, and checks plan requirements line-by-line against code. Returns a structured report. Never trust a completion claim that did not go through this agent.
-model: haiku
+model: sonnet
 ---
 
 You are a verification evidence gatherer. You do not make decisions, fix issues, or editorialize. Your only job is to run the commands you are given, read the output, check requirements against code, and report findings in a structured format.
@@ -117,24 +117,24 @@ If a requirement's wording is ambiguous (e.g., "handles edge cases" — which on
 
 - [ ] **Step 2: Verify the file**
 
-Run: `head -5 agents/verification.md`
+Run: `head -5 agents/completion-verifier.md`
 Expected: First 5 lines should be the frontmatter:
 ```
 ---
-name: verification
+name: completion-verifier
 description: Use this agent to gather evidence ...
-model: haiku
+model: sonnet
 ---
 ```
 
-Run: `wc -l agents/verification.md`
+Run: `wc -l agents/completion-verifier.md`
 Expected: approximately 75-80 lines
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add agents/verification.md
-git commit -m "feat(agents): add verification subagent for evidence gathering"
+git add agents/completion-verifier.md
+git commit -m "feat(agents): add completion-verifier subagent for evidence gathering"
 ```
 
 ---
@@ -157,7 +157,7 @@ Replace the entire file with exactly this content:
 ````markdown
 ---
 name: verification-before-completion
-description: Use before claiming work is complete — dispatches the verification subagent to gather fresh evidence that tests pass and requirements are met. No completion claims without evidence.
+description: Use before claiming work is complete — dispatches the completion-verifier subagent to gather fresh evidence that tests pass and requirements are met. No completion claims without evidence.
 ---
 
 # Verification Before Completion
@@ -176,22 +176,22 @@ Claiming work is complete without evidence is dishonesty, not efficiency. This s
 NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
 ```
 
-If you have not dispatched the verification subagent and received its report in this invocation, you cannot claim PASS. The agent's contract enforces this — it refuses to report PASS without having actually run the commands.
+If you have not dispatched the completion-verifier subagent and received its report in this invocation, you cannot claim PASS. The agent's contract enforces this — it refuses to report PASS without having actually run the commands.
 
 ## Dispatch Protocol
 
 ### Step 1: Gather inputs
 
-Collect the four things the verification subagent needs:
+Collect the four things the completion-verifier subagent needs:
 
 - **Verification commands** — the project's test, typecheck, and lint commands. Read from `.agents/config/commits.md` if it specifies pre-commit commands; otherwise detect (`package.json` scripts, `Makefile` targets, etc.) or ask the user.
 - **Requirements source** — the plan file path if executing a plan, or an inline list of requirements extracted from the task description.
 - **Changed files** — `git diff --name-only <base-branch>...HEAD` gives the list of files modified during the work being verified.
 - **Working directory** — current project root (absolute path).
 
-### Step 2: Dispatch the `verification` subagent
+### Step 2: Dispatch the `completion-verifier` subagent
 
-Use the Task tool with `subagent_type: verification` and pass the four inputs in the prompt. Example prompt structure:
+Use the Task tool with `subagent_type: completion-verifier` and pass the four inputs in the prompt. Example prompt structure:
 
 ```
 You are verifying completion of <task-or-plan-name>.
@@ -228,13 +228,13 @@ The subagent returns a structured report with:
 
 ## Agent Contract Summary
 
-The `verification` subagent:
+The `completion-verifier` subagent:
 - Runs only the commands provided, in order, sequentially
 - Refuses to report PASS without running the commands
 - Does not fix, retry, or suggest remediation
 - Returns evidence, not judgment
 
-Full contract: see `agents/verification.md`.
+Full contract: see `agents/completion-verifier.md`.
 
 ## Common Failures
 
@@ -265,7 +265,7 @@ Confidence is not evidence. The subagent exists so the main agent cannot rationa
 - **hey-d:subagent-driven-development** — after final reviewer, before finishing-a-development-branch
 
 **Dispatches:**
-- **`verification` subagent** (`agents/verification.md`) — Haiku-tier, contract-bound evidence gatherer
+- **`completion-verifier` subagent** (`agents/completion-verifier.md`) — Sonnet-tier, contract-bound evidence gatherer
 
 **Pairs with:**
 - **hey-d:finishing-a-development-branch** — runs immediately after this skill; finishing assumes verification produced fresh evidence
@@ -298,10 +298,10 @@ If a caller references the OLD internal structure (e.g., quotes the "Gate Functi
 git add skills/verification-before-completion/SKILL.md
 git commit -m "refactor(verification-before-completion): convert from rules doc to dispatch protocol
 
-The skill now dispatches the verification subagent (agents/verification.md) to
+The skill now dispatches the completion-verifier subagent (agents/completion-verifier.md) to
 gather evidence, rather than instructing the main agent to run verification
 inline. Main-agent context stays clean of test output; mechanical parsing runs
-on Haiku tier.
+on Sonnet tier.
 
 Iron Law wording preserved — it is now the subagent's contract, enforced by
 the agent's system prompt."
@@ -318,27 +318,27 @@ This is not automated because the unit under test is an agent definition, not co
 
 - [ ] **Step 1: Pick a trivial verification scenario**
 
-Choose a scenario where the answer is known. Example: "verify that `agents/verification.md` exists and has a valid frontmatter."
+Choose a scenario where the answer is known. Example: "verify that `agents/completion-verifier.md` exists and has a valid frontmatter."
 
-Verification command: `head -1 agents/verification.md | grep -q "^---$" && echo "OK" || echo "FAIL"`
-Requirement: "agents/verification.md exists and starts with frontmatter"
+Verification command: `head -1 agents/completion-verifier.md | grep -q "^---$" && echo "OK" || echo "FAIL"`
+Requirement: "agents/completion-verifier.md exists and starts with frontmatter"
 
 - [ ] **Step 2: Dispatch the agent**
 
-Invoke the Task tool with `subagent_type: verification` and a prompt like:
+Invoke the Task tool with `subagent_type: completion-verifier` and a prompt like:
 
 ```
 You are verifying a trivial scenario for plan validation.
 
 VERIFICATION COMMANDS (run in order):
-  - head -1 agents/verification.md | grep -q "^---$" && echo "OK"
+  - head -1 agents/completion-verifier.md | grep -q "^---$" && echo "OK"
 
 REQUIREMENTS SOURCE:
-  - agents/verification.md exists
-  - agents/verification.md starts with frontmatter
+  - agents/completion-verifier.md exists
+  - agents/completion-verifier.md starts with frontmatter
 
 CHANGED FILES:
-  - agents/verification.md
+  - agents/completion-verifier.md
 
 WORKING DIRECTORY: <repo-root-absolute-path>
 ```
@@ -351,15 +351,15 @@ Check the returned report has:
 - `REQUIREMENTS:` section with [✓] markers for both
 - Format matches `docs/specs/2026-04-17-verification-subagent-design.md`
 
-If the format deviates (e.g., missing REQUIREMENTS section, wrong status value), update the agent system prompt in `agents/verification.md` and re-dispatch.
+If the format deviates (e.g., missing REQUIREMENTS section, wrong status value), update the agent system prompt in `agents/completion-verifier.md` and re-dispatch.
 
 - [ ] **Step 4: Commit any agent tweaks (if needed)**
 
 If Step 3 required system-prompt adjustments:
 
 ```bash
-git add agents/verification.md
-git commit -m "fix(agents/verification): refine report format after manual validation"
+git add agents/completion-verifier.md
+git commit -m "fix(agents/completion-verifier): refine report format after manual validation"
 ```
 
 If no tweaks were needed, skip this step.
@@ -387,5 +387,5 @@ This is a fork-only release on the same v5.0.7 upstream base.
 
 - This plan produces **no code** — only markdown files. There is no TDD cycle because there is no code to test against a failing-then-passing assertion.
 - Task 3 is a runtime smoke test, not a unit test. It confirms the agent's report format; it does not prove the agent works in all scenarios.
-- If Task 3 reveals the agent produces malformed reports, fix the system prompt in `agents/verification.md` before marking the task complete. The spec (`docs/specs/2026-04-17-verification-subagent-design.md`) is the source of truth for expected format.
+- If Task 3 reveals the agent produces malformed reports, fix the system prompt in `agents/completion-verifier.md` before marking the task complete. The spec (`docs/specs/2026-04-17-verification-subagent-design.md`) is the source of truth for expected format.
 - Do NOT modify callers (`executing-plans`, `subagent-driven-development`) unless Step 4 of Task 2 surfaces incompatibility. The whole point of the dispatch protocol is that callers are unchanged.
