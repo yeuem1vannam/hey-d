@@ -15,8 +15,18 @@ run_claude() {
         cmd="$cmd --allowed-tools=$allowed_tools"
     fi
 
-    # Run Claude in headless mode with timeout
-    if timeout "$timeout" bash -c "$cmd" > "$output_file" 2>&1; then
+    # Pick a timeout implementation: GNU `timeout` (Linux), `gtimeout` (macOS
+    # via `brew install coreutils`), or none (graceful degradation — the test
+    # will still run, just without the hang-protection safety net).
+    local timeout_cmd=""
+    if command -v timeout >/dev/null 2>&1; then
+        timeout_cmd="timeout $timeout"
+    elif command -v gtimeout >/dev/null 2>&1; then
+        timeout_cmd="gtimeout $timeout"
+    fi
+
+    # Run Claude in headless mode (with timeout if available)
+    if $timeout_cmd bash -c "$cmd" > "$output_file" 2>&1; then
         cat "$output_file"
         rm -f "$output_file"
         return 0

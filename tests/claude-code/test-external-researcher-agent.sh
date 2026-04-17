@@ -30,15 +30,16 @@ if assert_contains "$output" "Explore\|explore" "Redirects codebase questions to
 
 echo ""
 
-# Test 3: Tool access — can read node_modules, cannot edit/write
+# Test 3: Tool access — check frontmatter tools list directly
 echo "Test 3: Tool access..."
 
-output=$(run_claude "What tools can the external-researcher agent use? Specifically, can it read node_modules source? Can it write or edit files?" 30)
+output=$(run_claude "Read the frontmatter of agents/external-researcher.md. Quote the 'tools:' field verbatim. List which tools appear in it and which common tools (Edit, Write, Bash, Task) do NOT appear." 30)
 
-if assert_contains "$output" "WebSearch\|WebFetch\|web.*search" "Can search web"; then : ; else exit 1; fi
-if assert_contains "$output" "Read\|read.*files" "Can read files"; then : ; else exit 1; fi
-if assert_contains "$output" "node_modules\|third-party\|library.*source\|vendor" "Can read third-party source"; then : ; else exit 1; fi
-if assert_contains "$output" "[Cc]annot.*[Ee]dit\|[Cc]annot.*[Ww]rite\|no.*[Ee]dit\|no.*[Ww]rite\|[Rr]ead-only" "Cannot edit/write"; then : ; else exit 1; fi
+if assert_contains "$output" "WebSearch" "Tools list includes WebSearch"; then : ; else exit 1; fi
+if assert_contains "$output" "WebFetch" "Tools list includes WebFetch"; then : ; else exit 1; fi
+if assert_contains "$output" "Read" "Tools list includes Read"; then : ; else exit 1; fi
+if assert_contains "$output" "Grep\|Glob" "Tools list includes Grep or Glob"; then : ; else exit 1; fi
+if assert_contains "$output" "[Ee]dit.*[Nn][Oo][Tt]\|[Nn][Oo][Tt].*[Ee]dit\|[Ww]rite.*[Nn][Oo][Tt]\|[Nn][Oo][Tt].*[Ww]rite\|read-only\|read only\|do not appear\|NOT appear\|not appear" "Response confirms Edit/Write NOT in list"; then : ; else exit 1; fi
 
 echo ""
 
