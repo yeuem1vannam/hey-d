@@ -129,7 +129,15 @@ Use `--url-host` to control what hostname is printed in the returned URL JSON.
 
 Write just the content that goes inside the page. The server wraps it in the frame template automatically (header, theme CSS, selection indicator, and all interactive infrastructure).
 
-**Minimal example:**
+### Two kinds of content
+
+**1. Interactive A/B/C selection** — use the `.options` / `.cards` classes below. Users click to select; selections stream to `$STATE_DIR/events` that you read on your next turn.
+
+**2. Visual content / mockups / spec docs** — use the hey-d visualization components (`<hd-card>`, `<hd-field>`, `<hd-flow>`, `<hd-approach>`, etc.). Reference: [visualization-components.md](../visualization-components.md). The components render across standalone, dev-server, and cloud modes consistently.
+
+You can mix both in one fragment: visualization components for the design, `<div class="options">` for the A/B/C question at the bottom.
+
+### Minimal A/B/C example
 
 ```html
 <h2>Which layout works better?</h2>
@@ -152,6 +160,19 @@ Write just the content that goes inside the page. The server wraps it in the fra
   </div>
 </div>
 ```
+
+### Minimal visualization example
+
+```html
+<section title="Dashboard mockup" subtitle="For the admin panel">
+  <hd-card title="System health">
+    <hd-stat label="Uptime" value="99.9%"></hd-stat>
+    <hd-stat label="Active users" value="1,234" delta="+5%"></hd-stat>
+  </hd-card>
+</section>
+```
+
+For the full component list, patterns, and composition guidance: [visualization-components.md](../visualization-components.md).
 
 That's it. No `<html>`, no CSS, no `<script>` tags needed. The server provides all of that.
 
@@ -195,53 +216,30 @@ The frame template provides these CSS classes for your content:
 </div>
 ```
 
-### Mockup container
+### For everything else — use hey-d visualization components
 
-```html
-<div class="mockup">
-  <div class="mockup-header">Preview: Dashboard Layout</div>
-  <div class="mockup-body"><!-- your mockup HTML --></div>
-</div>
-```
+Mockups, spec wireframes, comparisons, pros/cons, approach panels, code blocks, stats, callouts, references, matrices — all live in the hd-* component library. See [visualization-components.md](../visualization-components.md) for the full catalog.
 
-### Split view (side-by-side)
+Quick mapping from old ad-hoc CSS classes to components:
 
-```html
-<div class="split">
-  <div class="mockup"><!-- left --></div>
-  <div class="mockup"><!-- right --></div>
-</div>
-```
+| Old class | Use instead |
+|-----------|-------------|
+| `.mockup` / `.mockup-header` / `.mockup-body` | `<hd-card title="...">` |
+| `.split` (side-by-side) | `<hd-compare label-a="..." label-b="...">` with `slot="a"` and `slot="b"` |
+| `.pros-cons` | `<hd-tradeoff>` with `slot="pros"` and `slot="cons"` |
+| `.mock-nav` / `.mock-sidebar` / `.mock-content` | `<nav title="...">`, Tailwind `grid grid-cols-[200px_1fr]`, `<hd-card>` |
+| `.mock-button` | plain `<button>` + Tailwind utilities, or compose with `<hd-card>` |
+| `.mock-input` / `.placeholder` | `<hd-field label="..." size="sm|md|lg" placeholder="...">` |
+| `.label` (small uppercase) | `<hd-tag>` or `<hd-tag variant="accent">` |
+| `.subtitle` | `<section subtitle="...">` (on the section) or `<p class="text-gray-500">` |
 
-### Pros/Cons
+The hd-* components are available whenever the visualization infrastructure loads them — which is all three modes (standalone snapshot, brainstorm-server dev, cloud). Prefer them over hand-rolled markup.
 
-```html
-<div class="pros-cons">
-  <div class="pros"><h4>Pros</h4><ul><li>Benefit</li></ul></div>
-  <div class="cons"><h4>Cons</h4><ul><li>Drawback</li></ul></div>
-</div>
-```
-
-### Mock elements (wireframe building blocks)
-
-```html
-<div class="mock-nav">Logo | Home | About | Contact</div>
-<div style="display: flex;">
-  <div class="mock-sidebar">Navigation</div>
-  <div class="mock-content">Main content area</div>
-</div>
-<button class="mock-button">Action Button</button>
-<input class="mock-input" placeholder="Input field">
-<div class="placeholder">Placeholder area</div>
-```
-
-### Typography and sections
+### Typography
 
 - `h2` — page title
 - `h3` — section heading
-- `.subtitle` — secondary text below title
-- `.section` — content block with bottom margin
-- `.label` — small uppercase label text
+- `<section title="..." subtitle="...">` — auto-generates title + subtitle without needing raw `h2`
 
 ## Browser Events Format
 
