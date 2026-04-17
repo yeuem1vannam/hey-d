@@ -228,3 +228,18 @@ matrix { grid-template-rows: 40px 1fr 1fr; }
 .matrix-q1 { grid-column: 3; grid-row: 2; }
 .matrix-q4 { grid-column: 2; grid-row: 3; }
 .matrix-q2 { grid-column: 3; grid-row: 3; }
+
+/* Decision decorators */
+.approach-title { margin: 0 0 var(--s-2); color: var(--accent); font-size: 0.95rem; }
+.approach-selected { color: var(--accent-2); font-size: 0.72rem; font-weight: 600; }
+.tradeoff-pros, .tradeoff-cons { background: #fff; border: 1px solid var(--card-border); border-radius: var(--r-md); padding: var(--s-3); }
+.tradeoff-pros h5 { color: var(--accent-2); margin: 0 0 var(--s-1); font-size: 0.78rem; }
+.tradeoff-cons h5 { color: #8a5050; margin: 0 0 var(--s-1); font-size: 0.78rem; }
+.tradeoff-pros ul, .tradeoff-cons ul { margin: 0; padding-left: 18px; font-size: 0.78rem; }
+
+/* Document decorators */
+.toc-title { margin: 0 0 var(--s-2); font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+toc ol { margin: 0; padding-left: 22px; }
+toc li { margin: var(--s-1) 0; font-size: 0.9rem; }
+toc a { color: var(--accent); text-decoration: none; }
+toc a:hover { text-decoration: underline; }

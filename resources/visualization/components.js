@@ -379,4 +379,114 @@
   }
   customElements.define('matrix', HeydMatrix);
 
+  // ================== DECISION ==================
+
+  // <approach> — title + optional selected marker
+  class HeydApproach extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.heydDecorated) return;
+      this.dataset.heydDecorated = '1';
+      const title = this.getAttribute('title');
+      if (title) {
+        const h = document.createElement('h4');
+        h.className = 'approach-title';
+        h.textContent = title;
+        if (this.hasAttribute('selected')) {
+          const check = document.createElement('span');
+          check.className = 'approach-selected';
+          check.textContent = ' ✓ selected';
+          h.appendChild(check);
+        }
+        this.prepend(h);
+      }
+    }
+  }
+  customElements.define('approach', HeydApproach);
+
+  // <tradeoff> — pros/cons via named slots
+  class HeydTradeoff extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.heydDecorated) return;
+      this.dataset.heydDecorated = '1';
+      const pros = this.querySelector('[slot="pros"]');
+      const cons = this.querySelector('[slot="cons"]');
+      this.innerHTML = '';
+      if (pros) {
+        const wrap = document.createElement('div');
+        wrap.className = 'tradeoff-pros';
+        wrap.innerHTML = '<h5>Pros</h5>';
+        wrap.appendChild(pros);
+        this.appendChild(wrap);
+      }
+      if (cons) {
+        const wrap = document.createElement('div');
+        wrap.className = 'tradeoff-cons';
+        wrap.innerHTML = '<h5>Cons</h5>';
+        wrap.appendChild(cons);
+        this.appendChild(wrap);
+      }
+    }
+  }
+  customElements.define('tradeoff', HeydTradeoff);
+
+  // ================== DOCUMENT ==================
+
+  // <toc> — auto-generated from <section title> OR manual content
+  class HeydToc extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.heydDecorated) return;
+      this.dataset.heydDecorated = '1';
+      if (this.hasAttribute('auto') && !this.hasChildNodes()) {
+        queueMicrotask(() => {
+          const sections = document.querySelectorAll('section[title]');
+          const ol = document.createElement('ol');
+          sections.forEach(s => {
+            const id = s.id || s.getAttribute('title').toLowerCase().replace(/\s+/g, '-');
+            s.id = id;
+            const li = document.createElement('li');
+            li.innerHTML = `<a href="#${id}">${s.getAttribute('title')}</a>`;
+            ol.appendChild(li);
+          });
+          const h = document.createElement('h2');
+          h.className = 'toc-title';
+          h.textContent = 'Contents';
+          this.appendChild(h);
+          this.appendChild(ol);
+        });
+      }
+    }
+  }
+  customElements.define('toc', HeydToc);
+
+  // <code language="..."> — native element decorated to wrap in <pre>
+  function decorateCode(el) {
+    if (el.dataset.heydDecorated) return;
+    el.dataset.heydDecorated = '1';
+    if (el.parentElement?.tagName !== 'PRE') {
+      const pre = document.createElement('pre');
+      pre.className = 'code';
+      pre.setAttribute('data-language', el.getAttribute('language') || '');
+      el.parentNode.insertBefore(pre, el);
+      pre.appendChild(el);
+    }
+  }
+  const codeObserver = new MutationObserver(mutations => {
+    for (const m of mutations) {
+      for (const node of m.addedNodes) {
+        if (node.nodeType === 1 && node.tagName === 'CODE' && node.hasAttribute('language')) {
+          decorateCode(node);
+        }
+      }
+    }
+  });
+  function initCode() {
+    document.querySelectorAll('code[language]').forEach(decorateCode);
+    codeObserver.observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCode);
+  } else {
+    initCode();
+  }
+
 })();
