@@ -80,7 +80,7 @@ async function runTests() {
   await test('serves plugin components.js', async () => {
     const res = await fetch(`http://127.0.0.1:${TEST_PORT}/resources/visualization/components.js`);
     assert.strictEqual(res.status, 200);
-    assert.ok(res.body.includes("customElements.define('card'"), 'Expected card registration in body');
+    assert.ok(res.body.includes("customElements.define('hd-card'"), 'Expected card registration in body');
   });
 
   await test('serves plugin theme.css', async () => {

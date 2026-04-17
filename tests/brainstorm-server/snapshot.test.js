@@ -34,30 +34,30 @@ function runTests() {
   }
 
   test('produces a self-contained HTML file from a bare fragment', () => {
-    fs.writeFileSync(fragment, '<card title="Test"><p>Hello</p></card>');
+    fs.writeFileSync(fragment, '<hd-card title="Test"><p>Hello</p></hd-card>');
     execFileSync('node', [SNAPSHOT, fragment, '--out', output]);
     assert.ok(fs.existsSync(output), 'Output file should exist');
 
     const out = fs.readFileSync(output, 'utf-8');
     assert.match(out, /<!DOCTYPE html>/, 'Should start with DOCTYPE');
     assert.ok(out.includes('--accent'), 'Should have theme.css (CSS var) inlined');
-    assert.ok(out.includes("customElements.define('card'"), 'Should have components.js inlined');
-    assert.match(out, /<main>[\s\S]*<card title="Test"/, 'Fragment content should be wrapped in <main>');
+    assert.ok(out.includes("customElements.define('hd-card'"), 'Should have components.js inlined');
+    assert.match(out, /<main>[\s\S]*<hd-card title="Test"/, 'Fragment content should be wrapped in <main>');
   });
 
   test('extracts <main> content when fragment is already wrapped', () => {
-    fs.writeFileSync(fragment, '<main><card title="Wrapped"><p>Inner</p></card></main>');
+    fs.writeFileSync(fragment, '<main><hd-card title="Wrapped"><p>Inner</p></hd-card></main>');
     execFileSync('node', [SNAPSHOT, fragment, '--out', output]);
     const out = fs.readFileSync(output, 'utf-8');
     // Should contain the inner content, not a nested <main>
-    assert.ok(out.includes('<card title="Wrapped"'), 'Should have the card element');
+    assert.ok(out.includes('<hd-card title="Wrapped"'), 'Should have the card element');
     // Only one opening <main> tag in the output
     const mainOpens = (out.match(/<main>/g) || []).length;
     assert.strictEqual(mainOpens, 1, `Expected exactly one <main> tag, got ${mainOpens}`);
   });
 
   test('accepts --title flag', () => {
-    fs.writeFileSync(fragment, '<card><p>Titled</p></card>');
+    fs.writeFileSync(fragment, '<hd-card><p>Titled</p></hd-card>');
     execFileSync('node', [SNAPSHOT, fragment, '--out', output, '--title', 'My Custom Title']);
     const out = fs.readFileSync(output, 'utf-8');
     assert.match(out, /<title>My Custom Title<\/title>/, 'Should use the provided title');

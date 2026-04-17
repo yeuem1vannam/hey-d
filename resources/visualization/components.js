@@ -59,7 +59,7 @@
       const tag = this.getAttribute('tag');
       const title = this.getAttribute('title');
       if (tag) {
-        const el = document.createElement('tag');
+        const el = document.createElement('hd-tag');
         el.textContent = tag;
         this.prepend(el);
       }
@@ -72,14 +72,14 @@
       }
     }
   }
-  customElements.define('card', HeydCard);
+  customElements.define('hd-card', HeydCard);
 
   // <tabs> + <tab>
   class HeydTabs extends HTMLElement {
     connectedCallback() {
       if (this.dataset.heydDecorated) return;
       this.dataset.heydDecorated = '1';
-      const tabs = this.querySelectorAll(':scope > tab');
+      const tabs = this.querySelectorAll(':scope > hd-tab');
       const bar = document.createElement('div');
       bar.className = 'tab-bar';
       tabs.forEach((tab, i) => {
@@ -97,22 +97,22 @@
         bar.appendChild(btn);
       });
       this.prepend(bar);
-      if (!this.querySelector('tab[active]')) {
+      if (!this.querySelector('hd-tab[active]')) {
         tabs[0]?.setAttribute('active', '');
         bar.children[0]?.classList.add('active');
       }
     }
     activate(index) {
-      const tabs = this.querySelectorAll(':scope > tab');
+      const tabs = this.querySelectorAll(':scope > hd-tab');
       const btns = this.querySelectorAll(':scope > .tab-bar > .tab-btn');
       tabs.forEach((t, i) => i === index ? t.setAttribute('active', '') : t.removeAttribute('active'));
       btns.forEach((b, i) => i === index ? b.classList.add('active') : b.classList.remove('active'));
     }
   }
-  customElements.define('tabs', HeydTabs);
+  customElements.define('hd-tabs', HeydTabs);
 
   class HeydTab extends HTMLElement {}
-  customElements.define('tab', HeydTab);
+  customElements.define('hd-tab', HeydTab);
 
   // Decorate native elements on DOM ready and as new nodes are added
   const nativeObserver = new MutationObserver(mutations => {
@@ -157,7 +157,7 @@
       }
     }
   }
-  customElements.define('field', HeydField);
+  customElements.define('hd-field', HeydField);
 
   // <stat> — KPI / metric display
   class HeydStat extends HTMLElement {
@@ -187,11 +187,11 @@
       }
     }
   }
-  customElements.define('stat', HeydStat);
+  customElements.define('hd-stat', HeydStat);
 
   // <tag> — styling via CSS only
   class HeydTag extends HTMLElement {}
-  customElements.define('tag', HeydTag);
+  customElements.define('hd-tag', HeydTag);
 
   // <callout> — optional label prefix
   class HeydCallout extends HTMLElement {
@@ -207,7 +207,7 @@
       }
     }
   }
-  customElements.define('callout', HeydCallout);
+  customElements.define('hd-callout', HeydCallout);
 
   // <ref> — uppercase label badge + optional source link
   class HeydRef extends HTMLElement {
@@ -231,7 +231,7 @@
       }
     }
   }
-  customElements.define('ref', HeydRef);
+  customElements.define('hd-ref', HeydRef);
 
   // <prompt> — accent-border row with optional label + question
   class HeydPrompt extends HTMLElement {
@@ -248,7 +248,7 @@
       }
     }
   }
-  customElements.define('prompt', HeydPrompt);
+  customElements.define('hd-prompt', HeydPrompt);
 
   // ================== FLOW ==================
 
@@ -257,7 +257,7 @@
     connectedCallback() {
       if (this.dataset.heydDecorated) return;
       this.dataset.heydDecorated = '1';
-      const steps = this.querySelectorAll(':scope > step');
+      const steps = this.querySelectorAll(':scope > hd-step');
       steps.forEach((step, i) => {
         if (step.dataset.heydNumbered) return;
         step.dataset.heydNumbered = '1';
@@ -269,10 +269,10 @@
       });
     }
   }
-  customElements.define('steps', HeydSteps);
+  customElements.define('hd-steps', HeydSteps);
 
   class HeydStep extends HTMLElement {}
-  customElements.define('step', HeydStep);
+  customElements.define('hd-step', HeydStep);
 
   // <flow> — multi-column with → arrows between flow-items
   class HeydFlow extends HTMLElement {
@@ -301,10 +301,10 @@
       });
     }
   }
-  customElements.define('flow', HeydFlow);
+  customElements.define('hd-flow', HeydFlow);
 
   class HeydFlowItem extends HTMLElement {}
-  customElements.define('flow-item', HeydFlowItem);
+  customElements.define('hd-flow-item', HeydFlowItem);
 
   // <compare> — two-column via named slots
   class HeydCompare extends HTMLElement {
@@ -328,7 +328,7 @@
       this.appendChild(colB);
     }
   }
-  customElements.define('compare', HeydCompare);
+  customElements.define('hd-compare', HeydCompare);
 
   // <matrix> — 2×2 quadrant with axis labels
   class HeydMatrix extends HTMLElement {
@@ -377,7 +377,7 @@
       });
     }
   }
-  customElements.define('matrix', HeydMatrix);
+  customElements.define('hd-matrix', HeydMatrix);
 
   // ================== DECISION ==================
 
@@ -401,7 +401,7 @@
       }
     }
   }
-  customElements.define('approach', HeydApproach);
+  customElements.define('hd-approach', HeydApproach);
 
   // <tradeoff> — pros/cons via named slots
   class HeydTradeoff extends HTMLElement {
@@ -427,7 +427,7 @@
       }
     }
   }
-  customElements.define('tradeoff', HeydTradeoff);
+  customElements.define('hd-tradeoff', HeydTradeoff);
 
   // ================== DOCUMENT ==================
 
@@ -456,7 +456,7 @@
       }
     }
   }
-  customElements.define('toc', HeydToc);
+  customElements.define('hd-toc', HeydToc);
 
   // <code language="..."> — native element decorated to wrap in <pre>
   function decorateCode(el) {

@@ -11,17 +11,17 @@
 <body>
   <main>
 
-    <toc auto></toc>
+    <hd-toc auto></hd-toc>
 
     <section title="Layout" id="layout" subtitle="Page-level structural components.">
 
-      <card title="A simple card">
+      <hd-card title="A simple card">
         <p>Card body. Cards are the main content containers.</p>
-      </card>
+      </hd-card>
 
-      <card tag="BLOCK 1" title="Card with a tag badge">
+      <hd-card tag="BLOCK 1" title="Card with a tag badge">
         <p>The <code>tag</code> attribute renders a small badge above the title. Useful for labeling sections or items.</p>
-      </card>
+      </hd-card>
 
       <nav title="My App">
         <a href="#" style="margin-right: 1rem;">Home</a>
@@ -29,85 +29,85 @@
         <a href="#">Contact</a>
       </nav>
 
-      <tabs>
-        <tab label="First" active>
-          <card><p>First tab content.</p></card>
-        </tab>
-        <tab label="Second" badge="new">
-          <card><p>Second tab content, with a "new" badge on the tab itself.</p></card>
-        </tab>
-        <tab label="Third">
-          <card><p>Third tab content.</p></card>
-        </tab>
-      </tabs>
+      <hd-tabs>
+        <hd-tab label="First" active>
+          <hd-card><p>First tab content.</p></hd-card>
+        </hd-tab>
+        <hd-tab label="Second" badge="new">
+          <hd-card><p>Second tab content, with a "new" badge on the tab itself.</p></hd-card>
+        </hd-tab>
+        <hd-tab label="Third">
+          <hd-card><p>Third tab content.</p></hd-card>
+        </hd-tab>
+      </hd-tabs>
 
     </section>
 
     <section title="Content" id="content" subtitle="Inline content and note-style elements.">
 
-      <card title="Fields">
-        <field label="Name" size="sm"></field>
-        <field label="Email" size="sm" placeholder="you@example.com"></field>
-        <field label="Notes" size="lg" placeholder="Multi-line text..."></field>
-      </card>
+      <hd-card title="Fields">
+        <hd-field label="Name" size="sm"></hd-field>
+        <hd-field label="Email" size="sm" placeholder="you@example.com"></hd-field>
+        <hd-field label="Notes" size="lg" placeholder="Multi-line text..."></hd-field>
+      </hd-card>
 
-      <card title="Stats">
-        <stat label="Users" value="1,234" delta="+5%"></stat>
-        <stat label="Revenue" value="$12.5k" delta="-2%"></stat>
-        <stat label="Uptime" value="99.9%"></stat>
-      </card>
+      <hd-card title="Stats">
+        <hd-stat label="Users" value="1,234" delta="+5%"></hd-stat>
+        <hd-stat label="Revenue" value="$12.5k" delta="-2%"></hd-stat>
+        <hd-stat label="Uptime" value="99.9%"></hd-stat>
+      </hd-card>
 
-      <card title="Tags">
-        <tag>default</tag>
-        <tag variant="required">required</tag>
-        <tag variant="optional">optional</tag>
-        <tag variant="accent">accent</tag>
-        <tag variant="warning">warning</tag>
-      </card>
+      <hd-card title="Tags">
+        <hd-tag>default</hd-tag>
+        <hd-tag variant="required">required</hd-tag>
+        <hd-tag variant="optional">optional</hd-tag>
+        <hd-tag variant="accent">accent</hd-tag>
+        <hd-tag variant="warning">warning</hd-tag>
+      </hd-card>
 
-      <card title="Callouts">
-        <callout variant="info">An info callout for context.</callout>
-        <callout variant="translate" label="EN">A translation callout (italic).</callout>
-        <callout variant="warning">A warning callout.</callout>
-      </card>
+      <hd-card title="Callouts">
+        <hd-callout variant="info">An info callout for context.</hd-callout>
+        <hd-callout variant="translate" label="EN">A translation callout (italic).</hd-callout>
+        <hd-callout variant="warning">A warning callout.</hd-callout>
+      </hd-card>
 
-      <ref label="REFERENCE" source="docs/original.md">
+      <hd-ref label="REFERENCE" source="docs/original.md">
         <h4>Reference content</h4>
         <p>Reference panels pull source material to the foreground. The yellow background signals "here's the authoritative source".</p>
-      </ref>
+      </hd-ref>
 
-      <card title="Prompts">
-        <prompt label="Q1" question="What evidence supports this belief?">
-          <field size="md" placeholder="Answer..."></field>
-        </prompt>
-        <prompt label="Q2" question="How would a friend advise you?">
-          <field size="md" placeholder="Answer..."></field>
-        </prompt>
-      </card>
+      <hd-card title="Prompts">
+        <hd-prompt label="Q1" question="What evidence supports this belief?">
+          <hd-field size="md" placeholder="Answer..."></hd-field>
+        </hd-prompt>
+        <hd-prompt label="Q2" question="How would a friend advise you?">
+          <hd-field size="md" placeholder="Answer..."></hd-field>
+        </hd-prompt>
+      </hd-card>
 
     </section>
 
     <section title="Flow" id="flow" subtitle="Sequential and spatial flow components.">
 
-      <card title="Steps">
-        <steps>
-          <step>First step in a numbered process.</step>
-          <step>Second step.</step>
-          <step>Third step — note the circle numbers prepended automatically.</step>
-        </steps>
-      </card>
+      <hd-card title="Steps">
+        <hd-steps>
+          <hd-step>First step in a numbered process.</hd-step>
+          <hd-step>Second step.</hd-step>
+          <hd-step>Third step — note the circle numbers prepended automatically.</hd-step>
+        </hd-steps>
+      </hd-card>
 
-      <card title="Flow (with arrows)">
-        <flow>
-          <flow-item label="Step A">Start here</flow-item>
-          <flow-item label="Step B">Middle</flow-item>
-          <flow-item label="Step C" highlight>Highlighted step</flow-item>
-          <flow-item label="Step D">End</flow-item>
-        </flow>
-      </card>
+      <hd-card title="Flow (with arrows)">
+        <hd-flow>
+          <hd-flow-item label="Step A">Start here</hd-flow-item>
+          <hd-flow-item label="Step B">Middle</hd-flow-item>
+          <hd-flow-item label="Step C" highlight>Highlighted step</hd-flow-item>
+          <hd-flow-item label="Step D">End</hd-flow-item>
+        </hd-flow>
+      </hd-card>
 
-      <card title="Compare (two-column)">
-        <compare label-a="Option A" label-b="Option B">
+      <hd-card title="Compare (two-column)">
+        <hd-compare label-a="Option A" label-b="Option B">
           <div slot="a">
             <p>Option A details.</p>
             <ul><li>Fast</li><li>Simple</li></ul>
@@ -116,47 +116,47 @@
             <p>Option B details.</p>
             <ul><li>Flexible</li><li>Powerful</li></ul>
           </div>
-        </compare>
-      </card>
+        </hd-compare>
+      </hd-card>
 
-      <card title="Matrix (2×2 quadrant)">
-        <matrix axis-top="← Left Axis|Right Axis →" axis-left="Top Axis ↑|Bottom Axis ↓">
+      <hd-card title="Matrix (2×2 quadrant)">
+        <hd-matrix axis-top="← Left Axis|Right Axis →" axis-left="Top Axis ↑|Bottom Axis ↓">
           <div slot="q1"><strong>Q1 (top-right)</strong><p>Example: tangible + self</p></div>
           <div slot="q2"><strong>Q2 (bottom-right)</strong><p>Example: intangible + self</p></div>
           <div slot="q3"><strong>Q3 (top-left)</strong><p>Example: tangible + others</p></div>
           <div slot="q4"><strong>Q4 (bottom-left)</strong><p>Example: intangible + others</p></div>
-        </matrix>
-      </card>
+        </hd-matrix>
+      </hd-card>
 
     </section>
 
     <section title="Decision" id="decision" subtitle="Decision documentation components.">
 
-      <approach title="Path 1 — the simple approach">
+      <hd-approach title="Path 1 — the simple approach">
         <p>Description of Path 1...</p>
-        <tradeoff>
+        <hd-tradeoff>
           <ul slot="pros"><li>Easy to implement</li><li>Well understood</li></ul>
           <ul slot="cons"><li>Doesn't scale</li><li>Limited flexibility</li></ul>
-        </tradeoff>
-      </approach>
+        </hd-tradeoff>
+      </hd-approach>
 
-      <approach title="Path 2 — the recommended approach" selected>
+      <hd-approach title="Path 2 — the recommended approach" selected>
         <p>Description of Path 2...</p>
-        <tradeoff>
+        <hd-tradeoff>
           <ul slot="pros"><li>Scalable</li><li>Flexible</li><li>Familiar pattern</li></ul>
           <ul slot="cons"><li>Higher initial cost</li></ul>
-        </tradeoff>
-      </approach>
+        </hd-tradeoff>
+      </hd-approach>
 
-      <approach title="Path 3 — the alternative">
+      <hd-approach title="Path 3 — the alternative">
         <p>Description of Path 3...</p>
-      </approach>
+      </hd-approach>
 
     </section>
 
     <section title="Document" id="document" subtitle="Document-specific components for specs and references.">
 
-      <card title="Code block">
+      <hd-card title="Code block">
         <code language="typescript">// A simple greeting function
 function greet(name: string): string {
   return `Hello, ${name}!`;
@@ -164,15 +164,15 @@ function greet(name: string): string {
 
 const message = greet("world");
 console.log(message);</code>
-      </card>
+      </hd-card>
 
-      <card title="Code (JSON)">
+      <hd-card title="Code (JSON)">
         <code language="json">{
   "name": "hey-d",
   "version": "5.0.7-d.5",
   "description": "Skills library for AI coding agents"
 }</code>
-      </card>
+      </hd-card>
 
     </section>
 
