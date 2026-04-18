@@ -18,13 +18,15 @@ Guide completion of development work by presenting clear options and handling ch
 ### Prerequisite
 #### Commit Config
 
-Check if `.agents/config/commits.md` exists in the project root. If it does, read it and apply its conventions (commit types, scopes, co-author rules, pre-commit commands) when committing. If absent, use standard Conventional Commits defaults with no co-author attribution.
+Check if `.agents/config/commits.md` exists at the repository root (the directory `git rev-parse --show-toplevel` returns; fall back to the current workspace if not in a git repo). If it does, read it and apply its conventions (commit types, scopes, co-author rules, pre-commit commands) when committing. If absent, use standard Conventional Commits defaults with no co-author attribution.
+
+**Note on `.agents/` resolution:** All `.agents/` paths in this skill — for reading config and for writing cache — resolve at the repository root, not the current workspace. In a monorepo, do not create a new `.agents/` in a subdirectory.
 
 **Never include issue or PR references** (e.g. `#123`) in commit messages unless `.agents/config/commits.md` explicitly instructs it. Don't infer them from context.
 
 #### PR Config
 
-Check if `.agents/config/github.md` exists in the project root. If it does, read it and apply its conventions when creating pull requests. Template resolution order: workspace `.github/` → org repo specified in `org-repo` field → `.agents/cache/templates/`. If absent, look for templates only in the workspace `.github/` directory.
+Check if `.agents/config/github.md` exists at the repository root. If it does, read it and apply its conventions when creating pull requests. Template resolution order: workspace `.github/` → org repo specified in `org-repo` field → `<repo-root>/.agents/cache/templates/`. If absent, look for templates only in the workspace `.github/` directory.
 
 ### Step 1: Verify Tests
 

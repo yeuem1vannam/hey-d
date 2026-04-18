@@ -1,6 +1,8 @@
 # `.agents/config/github.md` Guide
 
-Place this file at `.agents/config/github.md` in your project root to customize how agents create pull requests and address PR review comments.
+Place this file at `.agents/config/github.md` at your repository root (the directory `git rev-parse --show-toplevel` returns) to customize how agents create pull requests and address PR review comments.
+
+In a monorepo, the file lives at the git repository root, not at the per-package workspace root. Agents read and write all `.agents/` paths (config and cache) relative to the repository root — this prevents a stray `.agents/` from being created inside a subpackage.
 
 ---
 
@@ -16,8 +18,9 @@ The org-level `.github` repository for shared PR templates:
 `<org>/.github`
 
 If a PR template is not found in the workspace `.github/pull_request_template.md`,
-fetch it from this repo instead. Cache the result to `.agents/cache/templates/`
-so subsequent PR creations do not need to re-fetch.
+fetch it from this repo instead. Cache the result to `<repo-root>/.agents/cache/templates/`
+(resolve `<repo-root>` via `git rev-parse --show-toplevel`) so subsequent PR
+creations do not need to re-fetch.
 
 ## PR Title Format
 
@@ -75,9 +78,9 @@ When creating a PR, agents look for a template in this order:
 
 1. Workspace `.github/pull_request_template.md`
 2. Org repo specified in `Org Repo` field (fetched via `gh`)
-3. Cached copy at `.agents/cache/templates/pull_request_template.md` (used if fetch fails or is unavailable)
+3. Cached copy at `<repo-root>/.agents/cache/templates/pull_request_template.md` (used if fetch fails or is unavailable)
 
-Add `.agents/cache/` to your `.gitignore`.
+Add `.agents/cache/` to the `.gitignore` at your repository root.
 
 ## Minimal Config
 

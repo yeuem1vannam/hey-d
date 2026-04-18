@@ -20,9 +20,11 @@ Every project goes through this process. A todo list, a single-function utility,
 ## Prerequisite
 ### Code Style Config
 
-At the start of this skill, check if `.agents/config/code-style.md` exists in the
-project root. If it does, read it and apply its conventions throughout this skill's
-execution — file naming, directory structure, component patterns, etc.
+At the start of this skill, check if `.agents/config/code-style.md` exists at the
+repository root (the directory `git rev-parse --show-toplevel` returns; fall back to
+the current workspace if not in a git repo). If it does, read it and apply its
+conventions throughout this skill's execution — file naming, directory structure,
+component patterns, etc.
 
 If the file doesn't exist, proceed with no assumptions about code style.
 

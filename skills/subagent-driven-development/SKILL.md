@@ -14,11 +14,13 @@ Execute plan by dispatching fresh subagent per task, with two-stage review after
 ## Prerequisite
 ### Code Style Config
 
-Check if `.agents/config/code-style.md` exists in the project root. If it does, read it and apply its conventions throughout this skill's execution — file naming, directory structure, component patterns, etc. If absent, proceed with no assumptions about code style.
+Check if `.agents/config/code-style.md` exists at the repository root (the directory `git rev-parse --show-toplevel` returns; fall back to the current workspace if not in a git repo). If it does, read it and apply its conventions throughout this skill's execution — file naming, directory structure, component patterns, etc. If absent, proceed with no assumptions about code style.
+
+**Note on `.agents/` resolution:** All `.agents/` paths in this skill — for reading config and for writing cache — resolve at the repository root, not the current workspace. In a monorepo, do not create a new `.agents/` in a subdirectory.
 
 ### Commit Config
 
-Check if `.agents/config/commits.md` exists in the project root. If it does, read it and apply its conventions (commit types, scopes, co-author rules, pre-commit commands) when committing or instructing subagents to commit. If absent, use standard Conventional Commits defaults with no co-author attribution.
+Check if `.agents/config/commits.md` exists at the repository root. If it does, read it and apply its conventions (commit types, scopes, co-author rules, pre-commit commands) when committing or instructing subagents to commit. If absent, use standard Conventional Commits defaults with no co-author attribution.
 
 **Never include issue or PR references** (e.g. `#123`) in commit messages unless `.agents/config/commits.md` explicitly instructs it. Don't infer them from context.
 
