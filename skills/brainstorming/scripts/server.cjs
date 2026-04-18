@@ -84,12 +84,12 @@ let ownerPid = process.env.BRAINSTORM_OWNER_PID ? Number(process.env.BRAINSTORM_
 // Plugin + project roots for visualization resource serving.
 // PLUGIN_ROOT = <plugin>/ (three levels up from skills/brainstorming/scripts/)
 // PROJECT_ROOT = the repo where --project-dir points (when available). Detected
-// from SESSION_DIR: if it contains `.hey-d/brainstorm/`, the segment before
+// from SESSION_DIR: if it contains `tmp/brainstorm/`, the segment before
 // that is the project root.
 const PLUGIN_ROOT = path.resolve(__dirname, '../../..');
 let PROJECT_ROOT = null;
 {
-  const marker = path.sep + '.hey-d' + path.sep + 'brainstorm' + path.sep;
+  const marker = path.sep + 'tmp' + path.sep + 'brainstorm' + path.sep;
   const idx = SESSION_DIR.indexOf(marker);
   if (idx >= 0) PROJECT_ROOT = SESSION_DIR.slice(0, idx);
 }
