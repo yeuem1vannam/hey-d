@@ -33,10 +33,15 @@ function main() {
   const outIdx = args.indexOf('--out');
   const output = outIdx >= 0 ? args[outIdx + 1] : input.replace(/\.html$/, '') + '.snapshot.html';
   const titleIdx = args.indexOf('--title');
-  const title = titleIdx >= 0 ? args[titleIdx + 1] : path.basename(input, '.html');
 
   const here = __dirname;
   const fragment = fs.readFileSync(input, 'utf-8');
+
+  // Title resolution: --title flag > inline <title> in input > filename.
+  const inlineTitleMatch = fragment.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const title = titleIdx >= 0
+    ? args[titleIdx + 1]
+    : (inlineTitleMatch ? inlineTitleMatch[1].trim() : path.basename(input, '.html'));
 
   // Extract <main> content if present, else use whole file
   const mainMatch = fragment.match(/<main[^>]*>([\s\S]*?)<\/main>/);
