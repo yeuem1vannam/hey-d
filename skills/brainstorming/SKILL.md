@@ -1,6 +1,6 @@
 ---
 name: brainstorming
-description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
+description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Supports three modes: Task (default, produces an implementation plan), User Story (triggered by 'US:' or 'brainstorm a user story', produces a spec + GitHub issue + us/<N> branch), and Epic (triggered by 'EPIC:' or 'brainstorm an epic', produces a spec + GitHub issue + epic/<N> branch)."
 ---
 
 # Brainstorming Ideas Into Designs
@@ -27,6 +27,36 @@ conventions throughout this skill's execution — file naming, directory structu
 component patterns, etc.
 
 If the file doesn't exist, proceed with no assumptions about code style.
+
+## Mode Detection
+
+This skill has three modes. The mode is chosen by the user's opening message; no confirmation is asked.
+
+| Mode | Trigger phrasing (examples, case-insensitive) | Flow file |
+|---|---|---|
+| **Epic** | `brainstorm an epic`, `this is an epic`, `EPIC:`, `epic brainstorm` | `skills/brainstorming/epic-flow.md` |
+| **User Story** | `brainstorm a user story`, `this is a us`, `US:`, `user story brainstorm` | `skills/brainstorming/user-story-flow.md` |
+| **Task** | *(default — anything else)* | continues in this SKILL.md |
+
+### Detection rule
+
+Scan the user's first message in the session for one of the Epic or User Story trigger phrasings above. Match case-insensitively against an explicit declaration — not a casual mention. If matched:
+
+1. Announce the chosen mode to the user in one sentence: e.g., *"Running brainstorming in Epic mode."*
+2. Load the corresponding flow file with the Read tool.
+3. Follow that flow file as the authoritative checklist for the rest of the session. The `## Checklist` and `## Process Flow` sections below do NOT apply to Epic or User Story mode.
+
+If neither Epic nor User Story triggers match, continue with the Task flow (the rest of this file). The user does not need to say "Task" explicitly — it is the default.
+
+### Shared sections that still apply in all modes
+
+- `## Prerequisite / Code Style Config` (above) — applies to all modes.
+- `## Visual Companion` (below) — applies to all modes.
+- `## When to Dispatch external-researcher` (below) — applies to all modes.
+
+Everything else in this file below describes the Task flow only.
+
+---
 
 ## Checklist
 
@@ -74,7 +104,7 @@ digraph brainstorming {
 }
 ```
 
-**The terminal state is invoking writing-plans.** Do NOT invoke frontend-design, mcp-builder, or any other implementation skill. The ONLY skill you invoke after brainstorming is writing-plans.
+**For Task mode, the terminal state is invoking writing-plans.** Do NOT invoke frontend-design, mcp-builder, or any other implementation skill. The ONLY skill you invoke after a Task brainstorm is writing-plans. (Epic and User Story modes terminate in their own flow files and do NOT invoke writing-plans.)
 
 ## The Process
 
