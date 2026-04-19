@@ -9,7 +9,7 @@
     {
       "name": "hey-d",
       "description": "Core skills library for Claude Code: TDD, debugging, collaboration patterns, and proven techniques",
-      "version": "5.0.7-d.5",
+      "version": "5.0.7-d.6",
       "source": "./",
       "author": {
         "name": "Jesse Vincent",
