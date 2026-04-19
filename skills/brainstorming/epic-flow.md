@@ -71,13 +71,13 @@ fi
 
 ```bash
 # BODY_FILE is a temp file containing spec sections minus Candidate User Stories and Open Questions
-gh issue create \
+issue_url=$(gh issue create \
   --title "EPIC: <name>" \
   --label "Type:Epic" \
-  --body-file "$BODY_FILE"
+  --body-file "$BODY_FILE")
+issue_number="${issue_url##*/}"
+# issue_number is used below as <N> in the branch name
 ```
-
-Capture the issue URL or number from the output — it is needed for the branch name.
 
 ## Branch + commit + push (requires explicit user confirmation)
 

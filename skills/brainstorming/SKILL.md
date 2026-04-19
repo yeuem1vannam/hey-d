@@ -50,7 +50,8 @@ If neither Epic nor User Story triggers match, continue with the Task flow (the 
 
 ### Shared sections that still apply in all modes
 
-- `## Prerequisite / Code Style Config` (above) — applies to all modes.
+- The `<HARD-GATE>` block and the `## Anti-Pattern: "This Is Too Simple To Need A Design"` section (both above) — apply to all modes. No mode is allowed to skip design approval.
+- `## Prerequisite` / `### Code Style Config` (above) — applies to all modes.
 - `## Visual Companion` (below) — applies to all modes.
 - `## When to Dispatch external-researcher` (below) — applies to all modes.
 

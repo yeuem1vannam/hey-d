@@ -29,7 +29,7 @@ Create a TodoWrite task for each item:
 
 1. Explore project context
 2. Ask clarifying questions one at a time (actor, goal, benefit, scenario, DoD)
-3. Propose 2–3 approaches with trade-offs
+3. Propose 2–3 approaches with trade-offs and a recommendation
 4. Present the spec sections below one at a time with approval gates
 5. Write the spec to `docs/specs/YYYY-MM-DD-<slug>-story.md`
 6. Spec self-review — fix inline
@@ -143,5 +143,5 @@ If the user says `stop`, exit the skill.
 
 - **Parent Epic branch was force-deleted everywhere.** Fall back to `main`; warn in the preview and include a note in the Reference section explaining the fallback.
 - **`gh` not authenticated.** Surface the error; spec remains on disk.
-- **Dirty working tree.** Refuse `git checkout -b`.
+- **Dirty working tree.** Refuse `git checkout -b`; ask the user to commit or stash first.
 - **`gh issue edit` fails after the issue was created.** The issue exists with placeholder title. Retry `gh issue edit` or instruct the user to rename manually.
