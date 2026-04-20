@@ -2,8 +2,8 @@
   "name": "hey-d-dev",
   "description": "Development marketplace for hey-d core skills library",
   "owner": {
-    "name": "Jesse Vincent",
-    "email": "jesse@fsck.com"
+    "name": "Phuong Le",
+    "email": "p.le@botfi.io"
   },
   "plugins": [
     {
@@ -12,8 +12,8 @@
       "version": "5.0.7-d.6",
       "source": "./",
       "author": {
-        "name": "Jesse Vincent",
-        "email": "jesse@fsck.com"
+        "name": "Phuong Le",
+        "email": "p.le@botfi.io"
       }
     }
   ]
