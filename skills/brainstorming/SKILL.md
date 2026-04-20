@@ -1,6 +1,6 @@
 ---
 name: brainstorming
-description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Supports three modes: Task (default, produces an implementation plan), User Story (triggered by 'US:' or 'brainstorm a user story', produces a spec + GitHub issue + us/<N> branch), and Epic (triggered by 'EPIC:' or 'brainstorm an epic', produces a spec + GitHub issue + epic/<N> branch)."
+description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Supports four modes: Task (default, produces an implementation plan), User Story (triggered by 'US:' or 'brainstorm a user story', produces a spec + GitHub issue + us/<N> branch), Epic (triggered by 'EPIC:' or 'brainstorm an epic', produces a spec + GitHub issue + epic/<N> branch), and Scope (triggered by 'SCOPE:' or 'quick brainstorm', produces a crisp DoD/scope resolution in chat with optional persistence — no spec file, no plan)."
 ---
 
 # Brainstorming Ideas Into Designs
@@ -30,23 +30,24 @@ If the file doesn't exist, proceed with no assumptions about code style.
 
 ## Mode Detection
 
-This skill has three modes. The mode is chosen by the user's opening message; no confirmation is asked.
+This skill has four modes. The mode is chosen by the user's opening message; no confirmation is asked.
 
 | Mode | Trigger phrasing (examples, case-insensitive) | Flow file |
 |---|---|---|
 | **Epic** | `brainstorm an epic`, `this is an epic`, `EPIC:`, `epic brainstorm` | `skills/brainstorming/epic-flow.md` |
 | **User Story** | `brainstorm a user story`, `this is a us`, `US:`, `user story brainstorm` | `skills/brainstorming/user-story-flow.md` |
+| **Scope** | `SCOPE:`, `scope brainstorm`, `brainstorm scope`, `quick brainstorm` | `skills/brainstorming/scope-flow.md` |
 | **Task** | *(default — anything else)* | continues in this SKILL.md |
 
 ### Detection rule
 
-Scan the user's first message in the session for one of the Epic or User Story trigger phrasings above. Match case-insensitively against an explicit declaration — not a casual mention. If matched:
+Scan the user's first message in the session for one of the Epic, User Story, or Scope trigger phrasings above. Match case-insensitively against an explicit declaration — not a casual mention. If multiple trigger phrasings would match, use priority: **Epic > User Story > Scope > Task** — planning-grade brainstorms must never be downgraded. If matched:
 
 1. Announce the chosen mode to the user in one sentence: e.g., *"Running brainstorming in Epic mode."*
 2. Load the corresponding flow file with the Read tool.
-3. Follow that flow file as the authoritative checklist for the rest of the session. The `## Checklist` and `## Process Flow` sections below do NOT apply to Epic or User Story mode.
+3. Follow that flow file as the authoritative checklist for the rest of the session. The `## Checklist` and `## Process Flow` sections below do NOT apply to Epic, User Story, or Scope mode.
 
-If neither Epic nor User Story triggers match, continue with the Task flow (the rest of this file). The user does not need to say "Task" explicitly — it is the default.
+If none of the Epic, User Story, or Scope triggers match, continue with the Task flow (the rest of this file). The user does not need to say "Task" explicitly — it is the default.
 
 ### Shared sections that still apply in all modes
 
