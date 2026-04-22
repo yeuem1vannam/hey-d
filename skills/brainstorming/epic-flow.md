@@ -9,8 +9,8 @@
 Run these before starting the Epic-specific checklist:
 
 1. **Code Style Config** — read `.agents/config/code-style.md` if present, following the same rule described in SKILL.md.
-2. **Commit Config** — read `.agents/config/commit.md` if present. Spec commit uses `docs(brainstorming): add epic spec for <name>` by default.
-3. **Branches Config** — read `.agents/config/branches.md` if present. Epic branch uses the `epic/<N>-<keyword>` prefix defined there.
+2. **Commit Config** — read `.agents/config/commit.md` if present, following the same rule described in SKILL.md. Spec commit uses `docs(brainstorming): add epic spec for <name>` by default.
+3. **Branches Config** — read `.agents/config/branches.md` if present, following the same rule described in SKILL.md. Epic branch uses the `epic/<N>-<keyword>` prefix defined there.
 4. **Visual Companion** — if upcoming questions will involve visual content, offer the companion per the rule in SKILL.md (its own message, no other content).
 
 ## Checklist

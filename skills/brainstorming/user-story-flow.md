@@ -18,9 +18,9 @@ If invoked standalone (no parent), base = `main`.
 
 Run these before starting the US-specific checklist:
 
-1. **Code Style Config** — read `.agents/config/code-style.md` if present.
-2. **Commit Config** — read `.agents/config/commit.md` if present. Spec commit uses `docs(brainstorming): add user story spec for <name>` by default.
-3. **Branches Config** — read `.agents/config/branches.md` if present. US branch uses the `us/<N>-<keyword>` prefix defined there.
+1. **Code Style Config** — read `.agents/config/code-style.md` if present, following the same rule described in SKILL.md.
+2. **Commit Config** — read `.agents/config/commit.md` if present, following the same rule described in SKILL.md. Spec commit uses `docs(brainstorming): add user story spec for <name>` by default.
+3. **Branches Config** — read `.agents/config/branches.md` if present, following the same rule described in SKILL.md. US branch uses the `us/<N>-<keyword>` prefix defined there.
 4. **Visual Companion** — if upcoming questions involve visual content, offer the companion per the rule in SKILL.md.
 
 ## Checklist
