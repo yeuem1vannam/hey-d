@@ -1,6 +1,6 @@
 ---
 name: brainstorming
-description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Supports four modes: Task (default, produces an implementation plan), User Story (triggered by 'US:' or 'brainstorm a user story', produces a spec + GitHub issue + us/<N> branch), Epic (triggered by 'EPIC:' or 'brainstorm an epic', produces a spec + GitHub issue + epic/<N> branch), and Scope (triggered by 'SCOPE:' or 'quick brainstorm', produces a crisp DoD/scope resolution in chat with optional persistence — no spec file, no plan)."
+description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Supports five modes: Task (default, produces an implementation plan), User Story (triggered by 'US:' or 'brainstorm a user story', produces a spec + GitHub issue + us/<N> branch), Epic (triggered by 'EPIC:' or 'brainstorm an epic', produces a spec + GitHub issue + epic/<N> branch), Scope (triggered by 'SCOPE:' or 'quick brainstorm', produces a crisp DoD/scope resolution in chat with optional persistence — no spec file, no plan), and Auto (triggered by 'AUTO:' or 'auto brainstorm', runs the full brainstorm → spec → plan → code pipeline end-to-end with collapsed gates and three evaluator-subagent checkpoints — opt-in per invocation, never sticky)."
 ---
 
 # Brainstorming Ideas Into Designs
@@ -30,30 +30,33 @@ If the file doesn't exist, proceed with no assumptions about code style.
 
 ## Mode Detection
 
-This skill has four modes. The mode is chosen by the user's opening message; no confirmation is asked.
+This skill has five modes. The mode is chosen by the user's opening message; no confirmation is asked.
 
 | Mode | Trigger phrasing (examples, case-insensitive) | Flow file |
 |---|---|---|
 | **Epic** | `brainstorm an epic`, `this is an epic`, `EPIC:`, `epic brainstorm` | `skills/brainstorming/epic-flow.md` |
 | **User Story** | `brainstorm a user story`, `this is a us`, `US:`, `user story brainstorm` | `skills/brainstorming/user-story-flow.md` |
 | **Scope** | `SCOPE:`, `scope brainstorm`, `brainstorm scope`, `quick brainstorm` | `skills/brainstorming/scope-flow.md` |
+| **Auto** | `AUTO:`, `auto brainstorm`, `run auto`, `end-to-end` | `skills/brainstorming/auto-flow.md` |
 | **Task** | *(default — anything else)* | continues in this SKILL.md |
 
 ### Detection rule
 
-Scan the user's first message in the session for one of the Epic, User Story, or Scope trigger phrasings above. Match case-insensitively against an explicit declaration — not a casual mention. If multiple trigger phrasings would match, use priority: **Epic > User Story > Scope > Task** — planning-grade brainstorms must never be downgraded. If matched:
+Scan the user's first message in the session for one of the Epic, User Story, Scope, or Auto trigger phrasings above. Match case-insensitively against an explicit declaration — not a casual mention. If multiple trigger phrasings would match, use priority: **Epic > User Story > Scope > Auto > Task** — planning-grade brainstorms must never be downgraded, and a collaborative mode (Epic / US / Scope) always wins over Auto. If matched:
 
 1. Announce the chosen mode to the user in one sentence: e.g., *"Running brainstorming in Epic mode."*
 2. Load the corresponding flow file with the Read tool.
-3. Follow that flow file as the authoritative checklist for the rest of the session. The `## Checklist` and `## Process Flow` sections below do NOT apply to Epic, User Story, or Scope mode.
+3. Follow that flow file as the authoritative checklist for the rest of the session. The `## Checklist` and `## Process Flow` sections below do NOT apply to Epic, User Story, Scope, or Auto mode.
 
-If none of the Epic, User Story, or Scope triggers match, continue with the Task flow (the rest of this file). The user does not need to say "Task" explicitly — it is the default.
+If none of the Epic, User Story, Scope, or Auto triggers match, continue with the Task flow (the rest of this file). The user does not need to say "Task" explicitly — it is the default.
+
+**Auto mode is opt-in per invocation.** The `AUTO:` prefix declares intent for that single request only. Do NOT carry an Auto declaration across requests, and do NOT treat an earlier `AUTO:` as enabling auto mode for any subsequent message.
 
 ### Shared sections that still apply in all modes
 
 - The `<HARD-GATE>` block and the `## Anti-Pattern: "This Is Too Simple To Need A Design"` section (both above) — apply to all modes. No mode is allowed to skip design approval.
 - `## Prerequisite` / `### Code Style Config` (above) — applies to all modes.
-- `## Visual Companion` (below) — applies to all modes.
+- `## Visual Companion` (below) — applies to all modes EXCEPT Auto, which explicitly skips it (see `auto-flow.md`).
 - `## When to Dispatch external-researcher` (below) — applies to all modes.
 
 Everything else in this file below describes the Task flow only.
