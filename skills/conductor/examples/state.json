@@ -1,0 +1,15 @@
+{
+  "roadmapId": "example-auth-rewrite",
+  "currentTaskId": 2,
+  "currentBranch": "feat/2-redis-session-store",
+  "subAgentId": "a8f4c0ee04af6b333",
+  "dispatchedAt": "2026-04-30T15:35:00Z",
+  "autoReturnedAt": "2026-04-30T16:08:47Z",
+  "phase": "awaiting-review",
+  "lastHaltAt": null,
+  "lastHaltQuestion": null,
+  "fixLoopRound": 0,
+  "currentReviewId": null,
+  "prNumber": 43,
+  "prUrl": "https://github.com/example/repo/pull/43"
+}
