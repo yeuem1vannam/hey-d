@@ -1,6 +1,6 @@
 {
   "name": "hey-d",
-  "version": "5.0.7-d.8",
+  "version": "5.0.7-d.9",
   "type": "module",
   "main": ".opencode/plugins/hey-d.js"
 }
