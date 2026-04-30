@@ -107,14 +107,28 @@ If the branch already exists locally (from a crashed prior run): use `git checko
 
 ### Step 4: Assemble the AUTO dispatch prompt
 
-The prompt MUST contain (in order):
+The dispatch prompt MUST begin with the literal token `AUTO:` (this is what triggers AUTO mode in the brainstorming skill). After that prefix, the prompt body contains four sections in this order:
 
 1. **Task description** — copy verbatim from `roadmap.md` for this task.
-2. **Dependency context** — for each dep id D in `deps`, paste the entire body of `task-D/summary.md` (after a `## Prior task summary: task <D>` heading). Read these from the conductor worktree (since main tree may not see merged summaries until a later fetch).
-3. **Branch contract** — exact text:
-   > You are on `<CURRENT_BRANCH>`, which is checked out off `<INTEGRATION_BRANCH>`. All commits land on this branch. Do NOT switch branches. When you reach the implementation step's PR-creation phase via the `pull-request` skill, the PR base MUST be `<INTEGRATION_BRANCH>`, NOT `main`. You MUST open the PR before returning success — returning without an open PR is a contract violation and conductor will halt.
+2. **Dependency context** — for each dep id D in `deps`, paste the entire body of `task-D/summary.md` (after a `## Prior task summary: task <D>` heading). Read these from the conductor worktree (since main tree may not see merged summaries until a later fetch). **If `deps` is empty, omit this section entirely (do not write a heading).**
+3. **Branch contract** — exact text, with `$CURRENT_BRANCH` and `$INTEGRATION_BRANCH` substituted with their actual values from `state.json` and `roadmap-meta.md` before sending (do NOT pass the literal placeholders through):
+   > You are on `$CURRENT_BRANCH`, which is checked out off `$INTEGRATION_BRANCH`. All commits land on this branch. Do NOT switch branches. When you reach the implementation step's PR-creation phase via the `pull-request` skill, the PR base MUST be `$INTEGRATION_BRANCH`, NOT `main`. You MUST open the PR before returning success — returning without an open PR is a contract violation and conductor will halt.
 4. **Continuation note** (only on re-dispatch — see § Re-dispatch below).
-5. **AUTO trigger** — prefix with `AUTO:` so the brainstorming skill enters AUTO mode.
+
+**Branch-key derivation for `$CURRENT_BRANCH`:** lowercase the task title; drop stop-words (`a`, `an`, `the`, `about`, `and`, `or`, `to`, `for`, `of`, `in`, `on`); take the first 3 of the remainder; hyphen-join. So `"Add a one-line README note about the test"` → `feat/1-add-one-line-readme`. This rule is deterministic — two LLMs running the same roadmap produce the same branches.
+
+Final prompt shape (illustrative for task 2 with deps=[1]):
+```
+AUTO: <task description>
+
+## Prior task summary: task 1
+
+<task-1/summary.md body verbatim>
+
+## Branch contract
+
+You are on `feat/2-add-second-line-note`, which is checked out off `conductor/test-conductor-smoke`. All commits land on this branch. ...
+```
 
 ### Step 5: Dispatch AUTO
 
@@ -132,8 +146,8 @@ AUTO will return at one of three points. Inspect its final message to classify:
 - **Success** — message contains a PR URL/number reference and "Checkpoint 3 + 3.5 passed" (or equivalent). Go to Step 7.
 - **Blocking gate** — message contains a question matching one of AUTO's gate shapes (Step 2 clarifying / Gate A / Gate B). Apply `answer-authority.md`:
   - Answerable → SendMessage the answer; update `state.json` (`autoReturnedAt` set, `phase` stays `auto-running`); loop back to wait for next return.
-  - Not answerable → halt per `answer-authority.md` § The halt protocol; update `state.json` (`phase = auto-blocked-on-gate`).
-- **Failure** — message indicates Checkpoint 3 or 3.5 rejected, or a hard error. Update `state.json` (`phase = task-halted`); halt to human with the failure surfaced.
+  - Not answerable → recoverable halt: follow § Halt-to-human with `phase = "auto-blocked-on-gate"`.
+- **Failure** — message indicates Checkpoint 3 or 3.5 rejected, or a hard error. Terminal halt: follow § Halt-to-human with `phase = "task-halted"` and the failure as `lastHaltQuestion`.
 
 ### Step 7: Validate the PR contract
 
@@ -143,7 +157,7 @@ Before moving to review:
 gh pr list --head "$CURRENT_BRANCH" --base "$INTEGRATION_BRANCH" --json number,url --jq '.[0]'
 ```
 
-If the result is null or empty: AUTO returned success but did NOT open the PR. This is a contract violation. Update `state.json` (`phase = task-halted`, `lastHaltQuestion = "AUTO returned success without opening the PR — contract violation"`); halt.
+If the result is null or empty: AUTO returned success but did NOT open the PR. This is a contract violation. Terminal halt: follow § Halt-to-human with `phase = "task-halted"` and `lastHaltQuestion = "AUTO returned success without opening the PR — contract violation"`. If the result has more than one PR matching `--head $CURRENT_BRANCH --base $INTEGRATION_BRANCH` (count > 1, e.g., a stale PR from a crashed prior run), terminal halt with `lastHaltQuestion = "Multiple open PRs match this task's branch — manual cleanup needed"`.
 
 If the result is valid: capture `prNumber` and `prUrl`. Also extract the spec path from AUTO's success message (AUTO's report names the spec it wrote — typically `docs/specs/<date>-<slug>-design.md`). If AUTO's message does not state the path, fall back to `git -C <main-tree> log --diff-filter=A --name-only --pretty=format: "$INTEGRATION_BRANCH..$CURRENT_BRANCH" -- docs/specs/ | head -n 1`.
 
@@ -171,20 +185,22 @@ gh pr checks "$PR_NUMBER" --watch
 
 Wait for terminal state (success / failure).
 
-Decision:
-- **must-fixes empty AND CI green** → proceed to merge (Step 10).
-- **must-fixes empty AND CI red** → treat as a fix-loop iteration: SendMessage AUTO with the failing CI logs as feedback. (Loop back, increment `fixLoopRound`.)
-- **must-fixes non-empty (regardless of CI)** → SendMessage AUTO with the must-fixes list. (Loop back, increment `fixLoopRound`.)
+Decision (depends on `fixLoopRound`):
 
-When sending feedback, update `state.json`:
+- **must-fixes empty AND CI green** → proceed to merge (Step 10).
+- **`fixLoopRound < 2`, must-fixes non-empty (regardless of CI)** → SendMessage AUTO with the must-fixes list. Loop back, increment `fixLoopRound`.
+- **`fixLoopRound < 2`, must-fixes empty AND CI red** → SendMessage AUTO with the failing CI logs. Loop back, increment `fixLoopRound`.
+- **`fixLoopRound == 2`, must-fixes empty AND CI red** → this is the **CI-flake safety round**. SendMessage AUTO asking it to push an empty no-op commit to retrigger CI (or, if AUTO declines, conductor itself runs `git -C <main-tree> commit --allow-empty -m "chore: retrigger CI" && git push`). Loop back, increment `fixLoopRound` (now 3).
+- **`fixLoopRound == 2`, must-fixes non-empty** → halt. The third round is reserved for CI flake retries only; a second round of must-fixes signals the task is in trouble and needs human intervention.
+- **`fixLoopRound > 3` (i.e., a 4th round would start)** → halt regardless of contents.
+
+When sending feedback (loop-back), update `state.json`:
 - `phase = "review-feedback-sent"`
 - `fixLoopRound += 1`
 
-If `fixLoopRound > 3`: halt. Update `state.json`:
-- `phase = "task-halted"`
-- `lastHaltQuestion = "Fix-loop exceeded 3 rounds. Latest review: <summary>. Latest CI: <green|red>."`
+When halting (any `task-halted` transition above), follow § Halt-to-human (commits `halted` to `roadmap.md` and surfaces to the user with `lastHaltQuestion = "Fix-loop exceeded N rounds. Latest review: <summary>. Latest CI: <green|red>."`).
 
-After AUTO pushes fixes (its return is the signal), set `phase = "review-running"` and dispatch a fresh review agent (it has no memory of prior rounds; that's intentional). Loop back to Step 9.
+After AUTO returns from a feedback SendMessage, classify the return per Step 6 (it may be a fresh gate question, not a "fixes pushed" signal). If success, set `phase = "review-running"` and dispatch a fresh review agent (it has no memory of prior rounds; that's intentional), then loop back to Step 9. If gate question, apply `answer-authority.md` (and route through the same answer/halt branches as Step 6). If failure, halt.
 
 ### Step 10: Merge the per-task PR
 
@@ -225,7 +241,12 @@ git -C "$WORKTREE" push
 
 Update `state.json`:
 - `phase = "done"`
-- Delete the local feat branch (`git -C <main-tree> branch -D <currentBranch>`).
+- Switch the main tree off the feat branch, then delete it locally:
+  ```bash
+  git -C <main-tree> checkout "$BASE_BRANCH"          # or any branch other than the feat branch
+  git -C <main-tree> branch -D "$CURRENT_BRANCH"
+  ```
+  (You CANNOT delete a branch while it is checked out — git refuses with "Cannot delete branch ... checked out at <path>". The checkout must come first.)
 
 Loop back to Step 1.
 
@@ -308,17 +329,23 @@ If pending tasks remain but none are eligible (every pending task has at least o
 
 ## Halt-to-human
 
-Whenever conductor transitions to `phase = "task-halted"` (any contract-violation case above, fix-loop exhaustion, AUTO failure, unanswerable gate, or failed merge), the durable side mirrors the ephemeral phase change:
+Conductor halts in two distinguishable modes, but both make the durable record reflect the halt by flipping `roadmap.md` to `halted`:
 
-1. **Update `state.json`**: set `phase = "task-halted"`, `lastHaltAt` = now, `lastHaltQuestion` = the verbatim halt reason.
-2. **Commit `halted` to `roadmap.md`** in the conductor worktree:
+- **Recoverable halt** (`phase = "auto-blocked-on-gate"`) — AUTO returned a gate question conductor cannot answer per `answer-authority.md`. The task can resume with a human-supplied answer; no commits or merge state is wrong.
+- **Terminal halt** (`phase = "task-halted"`) — fix-loop exhaustion, AUTO failure, contract violation, or failed merge. Resume options are narrower (typically `restart` or `abort`); the task may need re-dispatch or rollback.
+
+Whenever a halt fires (either phase above):
+
+1. **Update `state.json`**: set `phase` to the appropriate value (`auto-blocked-on-gate` for recoverable, `task-halted` for terminal), `lastHaltAt` = now, `lastHaltQuestion` = the verbatim halt reason or gate question.
+2. **Commit `halted` to `roadmap.md`** in the conductor worktree (durable record):
    ```bash
    # Edit docs/roadmaps/$ROADMAP_ID/roadmap.md: flip task <id> status from "in-progress" to "halted"
    git -C "$WORKTREE" add docs/roadmaps/$ROADMAP_ID/roadmap.md
    git -C "$WORKTREE" commit -m "chore(conductor): halt task $TASK_ID — $REASON"
    git -C "$WORKTREE" push
    ```
-3. **Surface the halt to the user** with the message described in `answer-authority.md` § The halt protocol (for gate halts) or the equivalent text for non-gate halts (failed merge, fix-loop exceeded, etc.). Include the same `lastHaltQuestion` text in the surface message.
-4. **Exit the turn.** On the user's next message, treat it as a directive: typically `resume`, `restart`, `abort`, or a free-form correction. The resume path in `resume-procedure.md` flips `roadmap.md` status back to `in-progress` before continuing.
+   This step is identical for both halt modes — the `roadmap.md` status is the same regardless of whether the ephemeral phase is `auto-blocked-on-gate` or `task-halted`. The phase distinguishes resume strategy; the `roadmap.md` flip just records "this task is not currently progressing."
+3. **Surface the halt to the user** with the message described in `answer-authority.md` § The halt protocol (for gate halts) or the equivalent text for terminal halts (failed merge, fix-loop exceeded, contract violation, AUTO failure). Include the verbatim `lastHaltQuestion` in the surface message.
+4. **Exit the turn.** On the user's next message, treat it as a directive: typically `resume`, `restart`, `abort`, or a free-form correction. The resume path in `resume-procedure.md` flips `roadmap.md` status back to `in-progress` before continuing (regardless of which halt phase preceded).
 
 This mirroring ensures the durable `roadmap.md` accurately reflects the halted state — important for crash recovery (state.json may be lost; roadmap.md is durable on the integration branch and pushed to the remote).

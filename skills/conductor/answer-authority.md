@@ -49,10 +49,11 @@ These are product or design decisions outside conductor's authority.
 
 ## The halt protocol
 
-When halting:
+When halting on an unanswerable gate, follow `conducting-flow.md` § Halt-to-human end-to-end. Specifically:
 
-1. Update `state.json`: set `phase = auto-blocked-on-gate`, set `lastHaltAt` to now, set `lastHaltQuestion` to the verbatim AUTO question.
-2. Surface to the user a single message:
+1. Update `state.json`: set `phase = "auto-blocked-on-gate"`, set `lastHaltAt` to now, set `lastHaltQuestion` to the verbatim AUTO question.
+2. Commit `halted` to `roadmap.md` in the conductor worktree (the durable record). Do this even though the halt is recoverable — `roadmap.md` reflects "task is not currently progressing," and the resume path flips it back to `in-progress`.
+3. Surface to the user a single message:
 
    > Conductor halted at task `<N>` (phase: `auto-blocked-on-gate`).
    >
@@ -62,7 +63,7 @@ When halting:
    >
    > Provide an answer (or `cancel` to abort the task). Conductor will SendMessage your reply to AUTO and continue.
 
-3. Exit the turn. On the user's next message, treat it as the SendMessage payload (after lightly validating it's plausibly an answer to the question), update `state.json` (`phase` back to `auto-running`, clear halt fields), and SendMessage AUTO.
+4. Exit the turn. On the user's next message, treat it as the SendMessage payload (any non-empty user message after a halt is the answer; only `cancel` triggers abort). Update `state.json` (`phase` back to `auto-running`, clear `lastHaltAt` and `lastHaltQuestion`), commit the resume flip in `roadmap.md` (`halted` → `in-progress`), and SendMessage AUTO.
 
 ## The answer protocol (Category A and B)
 
