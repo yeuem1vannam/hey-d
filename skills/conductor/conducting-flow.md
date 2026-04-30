@@ -127,7 +127,7 @@ AUTO: <task description>
 
 ## Branch contract
 
-You are on `feat/2-add-second-line-note`, which is checked out off `conductor/test-conductor-smoke`. All commits land on this branch. ...
+You are on `feat/2-add-second-one-line`, which is checked out off `conductor/test-conductor-smoke`. All commits land on this branch. ...
 ```
 
 ### Step 5: Dispatch AUTO
@@ -187,12 +187,12 @@ Wait for terminal state (success / failure).
 
 Decision (depends on `fixLoopRound`):
 
-- **must-fixes empty AND CI green** → proceed to merge (Step 10).
+- **(any round) must-fixes empty AND CI green** → proceed to merge (Step 10).
 - **`fixLoopRound < 2`, must-fixes non-empty (regardless of CI)** → SendMessage AUTO with the must-fixes list. Loop back, increment `fixLoopRound`.
 - **`fixLoopRound < 2`, must-fixes empty AND CI red** → SendMessage AUTO with the failing CI logs. Loop back, increment `fixLoopRound`.
 - **`fixLoopRound == 2`, must-fixes empty AND CI red** → this is the **CI-flake safety round**. SendMessage AUTO asking it to push an empty no-op commit to retrigger CI (or, if AUTO declines, conductor itself runs `git -C <main-tree> commit --allow-empty -m "chore: retrigger CI" && git push`). Loop back, increment `fixLoopRound` (now 3).
 - **`fixLoopRound == 2`, must-fixes non-empty** → halt. The third round is reserved for CI flake retries only; a second round of must-fixes signals the task is in trouble and needs human intervention.
-- **`fixLoopRound > 3` (i.e., a 4th round would start)** → halt regardless of contents.
+- **`fixLoopRound >= 3` AND NOT success** → halt. Anything that reaches round 3 and is not the green/empty success case (must-fixes still present, or CI still red after the flake retry) is a hard stop.
 
 When sending feedback (loop-back), update `state.json`:
 - `phase = "review-feedback-sent"`
@@ -200,7 +200,12 @@ When sending feedback (loop-back), update `state.json`:
 
 When halting (any `task-halted` transition above), follow § Halt-to-human (commits `halted` to `roadmap.md` and surfaces to the user with `lastHaltQuestion = "Fix-loop exceeded N rounds. Latest review: <summary>. Latest CI: <green|red>."`).
 
-After AUTO returns from a feedback SendMessage, classify the return per Step 6 (it may be a fresh gate question, not a "fixes pushed" signal). If success, set `phase = "review-running"` and dispatch a fresh review agent (it has no memory of prior rounds; that's intentional), then loop back to Step 9. If gate question, apply `answer-authority.md` (and route through the same answer/halt branches as Step 6). If failure, halt.
+After AUTO returns from a feedback SendMessage, classify the return — but note that the **success criterion is different from Step 6's initial-dispatch criterion**. After feedback, AUTO will not emit a fresh "Checkpoint 3 + 3.5 passed" banner; instead, success looks like "fixes pushed for [list]" or simply "done, pushed" or any return that is neither a gate question nor a failure indication.
+
+Concretely:
+- If the return is a **gate question** (matches one of AUTO's gate shapes) → apply `answer-authority.md` (and route through the same answer/halt branches as Step 6).
+- If the return is a **failure** (Checkpoint 3 / 3.5 rejected, or hard error) → terminal halt per § Halt-to-human.
+- Otherwise treat as **success-fixes-pushed**: set `phase = "review-running"` and dispatch a fresh review agent (it has no memory of prior rounds; that's intentional), then loop back to Step 9.
 
 ### Step 10: Merge the per-task PR
 
