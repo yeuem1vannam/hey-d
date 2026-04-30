@@ -62,9 +62,9 @@ Resume is the recovery primitive after any halt or crash. It mirrors AUTO's exis
 
 - [ ] **Step 6: Wait for user choice. Dispatch on it.**
 
-  - **`resume`** → execute the phase-specific resume action. See the `phase` enum table in `state-schema.md`. Concretely:
+  - **`resume`** → If the task's status in `roadmap.md` is `halted`, first commit a flip back to `in-progress` in the conductor worktree (`git -C "$WORKTREE" commit -am "chore(conductor): resume task $TASK_ID"; git -C "$WORKTREE" push`) so the durable record reflects active work. Then execute the phase-specific resume action. See the `phase` enum table in `state-schema.md`. Concretely:
     - `auto-running` / `auto-blocked-on-gate` / `review-feedback-sent` → SendMessage `subAgentId` if `<alive>`; else re-dispatch (see Re-dispatch section in `conducting-flow.md`).
-    - `awaiting-review` → dispatch the review agent on `prNumber`.
+    - `awaiting-review` → dispatch the review agent on `prNumber` using `currentSpecPath` from state.
     - `review-running` → SendMessage `currentReviewId` if alive; else re-dispatch review.
     - `awaiting-merge` → verify mergeability, then merge.
     - `summary-writing` → write `summary.md` and `roadmap.md` update idempotently (check if files already exist with correct content before writing).

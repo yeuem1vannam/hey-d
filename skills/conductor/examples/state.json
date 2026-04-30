@@ -11,5 +11,6 @@
   "fixLoopRound": 0,
   "currentReviewId": null,
   "prNumber": 43,
-  "prUrl": "https://github.com/example/repo/pull/43"
+  "prUrl": "https://github.com/example/repo/pull/43",
+  "currentSpecPath": "docs/specs/2026-04-30-redis-session-store-design.md"
 }

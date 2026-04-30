@@ -25,8 +25,34 @@ This directory is **gitignored** (see `.gitignore`'s `docs/roadmaps/*/state/` li
 | `currentReviewId` | string \| null | yes | Dispatched review agent's ID. Used to know whether feedback for this round was already sent. |
 | `prNumber` | number \| null | yes | The per-task PR number (from `gh pr create`). Null until AUTO opens the PR. |
 | `prUrl` | string \| null | yes | Convenience for human-facing reporting. Mirrors `prNumber`. |
+| `currentSpecPath` | string \| null | yes | Path to AUTO's spec for the current task (e.g., `docs/specs/2026-04-30-token-storage-design.md`). Captured when AUTO returns success; required by the review-dispatch prompt and must survive a resume from `awaiting-review`. |
 
 All required fields MUST be present (with `null` where the value is not yet known). Missing keys = corrupted state, treat as needing human intervention.
+
+### Fresh-state initialization
+
+`examples/state.json` shows a mid-flight state (phase `awaiting-review`). When conductor initializes a fresh `state.json` at session start (per `conducting-flow.md` § Session start checklist Step 7), the values are:
+
+```json
+{
+  "roadmapId": "<from roadmap-meta.md>",
+  "currentTaskId": 0,
+  "currentBranch": null,
+  "subAgentId": null,
+  "dispatchedAt": null,
+  "autoReturnedAt": null,
+  "phase": "dispatching",
+  "lastHaltAt": null,
+  "lastHaltQuestion": null,
+  "fixLoopRound": 0,
+  "currentReviewId": null,
+  "prNumber": null,
+  "prUrl": null,
+  "currentSpecPath": null
+}
+```
+
+`currentTaskId: 0` is a sentinel meaning "no task picked yet"; the per-task loop's Step 1 sets it to a real id.
 
 ## `phase` enum (exhaustive)
 

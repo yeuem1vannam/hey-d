@@ -44,6 +44,16 @@ Run these in order. Halt with a clear error on the first failure.
    >
    > Beginning task selection.
 
+## Worktree discipline (load-bearing)
+
+These five rules MUST be enforced for every operation in the per-task loop, the resume procedure, and end-of-roadmap cleanup. Violating any of them poisons subsequent dispatches or corrupts state.
+
+1. **Conductor's CWD stays on the main tree.** Do NOT `cd` into the worktree — the working directory is inherited by Agent dispatches; if conductor's CWD becomes the worktree, AUTO would inherit it and commit to `conductor/<roadmapId>` directly. All conductor operations targeting the worktree use **absolute paths** or `git -C "$WORKTREE"` — never `cd` followed by a bare git command.
+2. **AUTO inherits the main-tree CWD.** AUTO sees `feat/<N>-<keys>` checked out on the main tree and works there normally. No special instructions needed beyond the dispatch contract.
+3. **Same branch never in two worktrees.** `conductor/<roadmapId>` is held by the conductor worktree, so the main tree never directly checks it out. The main tree only checks out per-task feat branches that were *branched off* `conductor/<roadmapId>`.
+4. **After `gh pr merge`, refresh the worktree's ref before writing the summary.** The merge commit lands on the remote `conductor/<roadmapId>`; the worktree's local copy is stale until conductor runs `git -C "$WORKTREE" fetch && git -C "$WORKTREE" reset --hard origin/conductor/<roadmapId>` (or `pull --ff-only`). Skipping this means writing `summary.md` against a stale tip and rejecting on push.
+5. **Clean up the worktree at end-of-roadmap.** Once the final PR is opened, conductor runs `git worktree remove "$WORKTREE"`. State directory (gitignored) goes with it. The integration branch survives on the remote until the human merges or deletes it.
+
 ## Per-task loop
 
 This is the main loop. Repeat until no eligible task remains.
@@ -135,14 +145,17 @@ gh pr list --head "$CURRENT_BRANCH" --base "$INTEGRATION_BRANCH" --json number,u
 
 If the result is null or empty: AUTO returned success but did NOT open the PR. This is a contract violation. Update `state.json` (`phase = task-halted`, `lastHaltQuestion = "AUTO returned success without opening the PR — contract violation"`); halt.
 
-If the result is valid: capture `prNumber` and `prUrl`. Update `state.json`:
+If the result is valid: capture `prNumber` and `prUrl`. Also extract the spec path from AUTO's success message (AUTO's report names the spec it wrote — typically `docs/specs/<date>-<slug>-design.md`). If AUTO's message does not state the path, fall back to `git -C <main-tree> log --diff-filter=A --name-only --pretty=format: "$INTEGRATION_BRANCH..$CURRENT_BRANCH" -- docs/specs/ | head -n 1`.
+
+Update `state.json`:
 - `prNumber`, `prUrl` set
+- `currentSpecPath` set (captured above)
 - `autoReturnedAt` = now
 - `phase = "awaiting-review"`
 
 ### Step 8: Dispatch the review agent
 
-Dispatch a fresh sub-agent (NOT a SendMessage to AUTO) with the `requesting-code-review` skill, prompt: `Review PR #<prNumber> for completeness, correctness, and conformance to the spec at <spec-path>. Return must-fixes (list, may be empty) and nits (list, may be empty).`
+Dispatch a fresh sub-agent (NOT a SendMessage to AUTO) with the `requesting-code-review` skill, prompt: `Review PR #<prNumber> for completeness, correctness, and conformance to the spec at <currentSpecPath>. Return must-fixes (list, may be empty) and nits (list, may be empty).`
 
 Update `state.json`:
 - `currentReviewId` = returned agent id
@@ -295,4 +308,17 @@ If pending tasks remain but none are eligible (every pending task has at least o
 
 ## Halt-to-human
 
-Whenever conductor halts (any `phase = "task-halted"` transition, or any contract-violation case above): exit the turn with the surface message described in `answer-authority.md` § The halt protocol or the equivalent for non-gate halts (failed merge, fix-loop exceeded, etc.). On the user's next message, treat it as a directive: typically `resume`, `restart`, `abort`, or a free-form correction.
+Whenever conductor transitions to `phase = "task-halted"` (any contract-violation case above, fix-loop exhaustion, AUTO failure, unanswerable gate, or failed merge), the durable side mirrors the ephemeral phase change:
+
+1. **Update `state.json`**: set `phase = "task-halted"`, `lastHaltAt` = now, `lastHaltQuestion` = the verbatim halt reason.
+2. **Commit `halted` to `roadmap.md`** in the conductor worktree:
+   ```bash
+   # Edit docs/roadmaps/$ROADMAP_ID/roadmap.md: flip task <id> status from "in-progress" to "halted"
+   git -C "$WORKTREE" add docs/roadmaps/$ROADMAP_ID/roadmap.md
+   git -C "$WORKTREE" commit -m "chore(conductor): halt task $TASK_ID — $REASON"
+   git -C "$WORKTREE" push
+   ```
+3. **Surface the halt to the user** with the message described in `answer-authority.md` § The halt protocol (for gate halts) or the equivalent text for non-gate halts (failed merge, fix-loop exceeded, etc.). Include the same `lastHaltQuestion` text in the surface message.
+4. **Exit the turn.** On the user's next message, treat it as a directive: typically `resume`, `restart`, `abort`, or a free-form correction. The resume path in `resume-procedure.md` flips `roadmap.md` status back to `in-progress` before continuing.
+
+This mirroring ensures the durable `roadmap.md` accurately reflects the halted state — important for crash recovery (state.json may be lost; roadmap.md is durable on the integration branch and pushed to the remote).
