@@ -86,6 +86,7 @@ The `idsAreIssueNumbers: true` field in the produced `roadmap-meta.md` should re
 13. Verify `task-<X>/journal.md` exists and contains a "Timeline" section with at least one event line.
 14. Verify `conductor.log.jsonl` exists in `docs/roadmaps/smoke-test/` and contains valid JSONL (one event per line, every line is parseable JSON).
 15. Verify `task-<X>/journal.md` is consistent with the log: every gate-decision event in the log appears under "Gate decisions" in the journal.
+16. Verify `task-<X>/journal.md` contains a `## Conversation transcript` section with one block per `agent-message` event in the log slice. Each block header matches `### [HH:MM:SS] <sender> → <recipient> (<subAgentId>) — <messageKind>` and the body is blockquoted (lines start with `> `).
 
 ## Halt-path tests (do at least one per release)
 
