@@ -89,6 +89,18 @@ Run these in order. Halt with a clear error on the first failure.
    >
    > Beginning task selection.
 
+   **Emit `session-start`:**
+   ```bash
+   EVENT_JSON=$(jq -nc \
+     --arg ts "$(date -u +%FT%TZ)" \
+     --arg phase "dispatching" \
+     --arg roadmapId "$ROADMAP_ID" \
+     --arg baseBranch "$BASE_BRANCH" \
+     --arg integrationBranch "$INTEGRATION_BRANCH" \
+     '{ts:$ts, phase:$phase, taskId:null, eventType:"session-start", roadmapId:$roadmapId, baseBranch:$baseBranch, integrationBranch:$integrationBranch}')
+   echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+   ```
+
 ## Worktree discipline (load-bearing)
 
 These five rules MUST be enforced for every operation in the per-task loop, the resume procedure, and end-of-roadmap cleanup. Violating any of them poisons subsequent dispatches or corrupts state.
@@ -98,6 +110,37 @@ These five rules MUST be enforced for every operation in the per-task loop, the 
 3. **Same branch never in two worktrees.** `conductor/<roadmapId>` is held by the conductor worktree, so the main tree never directly checks it out. The main tree only checks out per-task feat branches that were *branched off* `conductor/<roadmapId>`.
 4. **After `gh pr merge`, refresh the worktree's ref before writing the summary.** The merge commit lands on the remote `conductor/<roadmapId>`; the worktree's local copy is stale until conductor runs `git -C "$WORKTREE" fetch && git -C "$WORKTREE" reset --hard origin/conductor/<roadmapId>` (or `pull --ff-only`). Skipping this means writing `summary.md` against a stale tip and rejecting on push.
 5. **Clean up the worktree at end-of-roadmap.** Once the final PR is opened, conductor runs `git worktree remove "$WORKTREE"`. State directory (gitignored) goes with it. The integration branch survives on the remote until the human merges or deletes it.
+
+### Event log emissions
+
+Conductor emits structured events to `docs/roadmaps/<roadmap-id>/state/events.buffer.jsonl` (gitignored, in the conductor worktree) at the following points. The event taxonomy and shape live in `roadmap-format.md` § `conductor.log.jsonl`. Buffer flushes to the durable `conductor.log.jsonl` at task-done (Step 12).
+
+The append idiom is always atomic single-line:
+
+```bash
+EVENT_JSON='{"ts":"<ISO-8601>","phase":"<phase>","taskId":<id>,"eventType":"<type>",...}'
+echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+```
+
+All timestamp values use the system clock at emission time. All `phase` values match `state-schema.md`'s enum. All optional event-type-specific fields are documented in `roadmap-format.md`.
+
+**Emission points:**
+
+| Step | eventType emitted |
+|---|---|
+| § Session start, Step 8 (announce) | `session-start` |
+| § Per-task loop, Step 1 (pick task) | `task-start` |
+| § Per-task loop, Step 5 (dispatch AUTO) | `auto-dispatched` |
+| § Per-task loop, Step 6 (handle AUTO return) | `auto-returned`; if blocking gate, also `gate-decision` |
+| § Per-task loop, Step 8 (dispatch review) | `review-dispatched` |
+| § Per-task loop, Step 9 (process review return) | `review-verdict`; if loop-back, also `feedback-sent` |
+| § Per-task loop, Step 10 (merge) | `merge-decision` |
+| § Per-task loop, Step 12 (write summary, mark done) | `task-done` |
+| § Halt-to-human (any halt path) | `task-halted` |
+| `resume-procedure.md` Step 6 (resume choice) | `task-resumed` |
+| § End of roadmap | `roadmap-end` |
+
+The emission is a single shell-line atomic append at each point. The following step-specific notes detail the JSON payload for each.
 
 ## Per-task loop
 
@@ -121,6 +164,18 @@ Update `state.json`:
 - `fixLoopRound` = 0
 - `dispatchedAt`, `autoReturnedAt` = null
 - `lastHaltAt`, `lastHaltQuestion` = null
+
+   **Emit `task-start`:**
+   ```bash
+   EVENT_JSON=$(jq -nc \
+     --arg ts "$(date -u +%FT%TZ)" \
+     --arg phase "dispatching" \
+     --argjson taskId "$TASK_ID" \
+     --arg branchKey "$CURRENT_BRANCH" \
+     --argjson deps "$DEPS_JSON_ARRAY" \
+     '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"task-start", branchKey:$branchKey, dependencies:$deps}')
+   echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+   ```
 
 ### Step 2: Mark task in-progress on the integration branch
 
@@ -184,6 +239,20 @@ Update `state.json`:
 - `dispatchedAt` = now (ISO-8601)
 - `phase = "auto-running"`
 
+   **Emit `auto-dispatched`:**
+   ```bash
+   PROMPT_HASH=$(printf '%s' "$DISPATCH_PROMPT" | sha256sum | cut -d' ' -f1)
+   EVENT_JSON=$(jq -nc \
+     --arg ts "$(date -u +%FT%TZ)" \
+     --arg phase "auto-running" \
+     --argjson taskId "$TASK_ID" \
+     --arg subAgentId "$SUB_AGENT_ID" \
+     --arg dispatchPromptHash "$PROMPT_HASH" \
+     --arg branchContract "$BRANCH_CONTRACT" \
+     '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"auto-dispatched", subAgentId:$subAgentId, dispatchPromptHash:$dispatchPromptHash, branchContract:$branchContract}')
+   echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+   ```
+
 ### Step 6: Handle AUTO's return
 
 AUTO will return at one of three points. Inspect its final message to classify:
@@ -193,6 +262,34 @@ AUTO will return at one of three points. Inspect its final message to classify:
   - Answerable → SendMessage the answer; update `state.json` (`autoReturnedAt` set, `phase` stays `auto-running`); loop back to wait for next return.
   - Not answerable → recoverable halt: follow § Halt-to-human with `phase = "auto-blocked-on-gate"`.
 - **Failure** — message indicates Checkpoint 3 or 3.5 rejected, or a hard error. Terminal halt: follow § Halt-to-human with `phase = "task-halted"` and the failure as `lastHaltQuestion`.
+
+   **Emit `auto-returned` (always):**
+   ```bash
+   EVENT_JSON=$(jq -nc \
+     --arg ts "$(date -u +%FT%TZ)" \
+     --arg phase "$CURRENT_PHASE" \
+     --argjson taskId "$TASK_ID" \
+     --arg subAgentId "$SUB_AGENT_ID" \
+     --arg returnType "$RETURN_TYPE" \
+     --arg returnMessageExcerpt "$(printf '%s' "$RETURN_MESSAGE" | head -c 500)" \
+     '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"auto-returned", subAgentId:$subAgentId, returnType:$returnType, returnMessageExcerpt:$returnMessageExcerpt}')
+   echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+   ```
+
+   **Emit `gate-decision` (only if returnType was `gate`):** at the moment conductor decides to answer or halt (per `answer-authority.md`):
+   ```bash
+   EVENT_JSON=$(jq -nc \
+     --arg ts "$(date -u +%FT%TZ)" \
+     --arg phase "$CURRENT_PHASE" \
+     --argjson taskId "$TASK_ID" \
+     --arg subAgentId "$SUB_AGENT_ID" \
+     --arg gateQuestion "$GATE_QUESTION" \
+     --arg decision "$DECISION" \
+     --arg groundingSource "${GROUNDING_SOURCE:-null}" \
+     --arg category "$CATEGORY" \
+     '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"gate-decision", subAgentId:$subAgentId, gateQuestion:$gateQuestion, decision:$decision, groundingSource:$groundingSource, category:$category}')
+   echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+   ```
 
 ### Step 7: Validate the PR contract
 
@@ -220,6 +317,18 @@ Update `state.json`:
 - `currentReviewId` = returned agent id
 - `phase = "review-running"`
 
+   **Emit `review-dispatched`:**
+   ```bash
+   EVENT_JSON=$(jq -nc \
+     --arg ts "$(date -u +%FT%TZ)" \
+     --arg phase "review-running" \
+     --argjson taskId "$TASK_ID" \
+     --arg currentReviewId "$CURRENT_REVIEW_ID" \
+     --argjson prNumber "$PR_NUMBER" \
+     '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"review-dispatched", currentReviewId:$currentReviewId, prNumber:$prNumber}')
+   echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+   ```
+
 ### Step 9: Process review return
 
 Parse the review agent's return into `must-fixes` and `nits`. Then check CI:
@@ -243,6 +352,35 @@ When sending feedback (loop-back), update `state.json`:
 - `phase = "review-feedback-sent"`
 - `fixLoopRound += 1`
 
+   **Emit `review-verdict` (always):**
+   ```bash
+   MUST_FIXES_JSON=$(printf '%s\n' "$MUST_FIXES_ARRAY" | jq -R . | jq -sc .)
+   EVENT_JSON=$(jq -nc \
+     --arg ts "$(date -u +%FT%TZ)" \
+     --arg phase "review-running" \
+     --argjson taskId "$TASK_ID" \
+     --arg currentReviewId "$CURRENT_REVIEW_ID" \
+     --argjson mustFixesCount "$MUST_FIXES_COUNT" \
+     --argjson nitsCount "$NITS_COUNT" \
+     --arg ciStatus "$CI_STATUS" \
+     --argjson verbatimMustFixes "$MUST_FIXES_JSON" \
+     '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"review-verdict", currentReviewId:$currentReviewId, mustFixesCount:$mustFixesCount, nitsCount:$nitsCount, ciStatus:$ciStatus, verbatimMustFixes:$verbatimMustFixes}')
+   echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+   ```
+
+   **Emit `feedback-sent` (only when SendMessaging feedback to AUTO):**
+   ```bash
+   EVENT_JSON=$(jq -nc \
+     --arg ts "$(date -u +%FT%TZ)" \
+     --arg phase "review-feedback-sent" \
+     --argjson taskId "$TASK_ID" \
+     --arg subAgentId "$SUB_AGENT_ID" \
+     --arg feedbackBody "$FEEDBACK_BODY" \
+     --argjson fixLoopRound "$FIX_LOOP_ROUND" \
+     '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"feedback-sent", subAgentId:$subAgentId, feedbackBody:$feedbackBody, fixLoopRound:$fixLoopRound}')
+   echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+   ```
+
 When halting (any `task-halted` transition above), follow § Halt-to-human (commits `halted` to `roadmap.md` and surfaces to the user with `lastHaltQuestion = "Fix-loop exceeded N rounds. Latest review: <summary>. Latest CI: <green|red>."`).
 
 After AUTO returns from a feedback SendMessage, classify the return — but note that the **success criterion is different from Step 6's initial-dispatch criterion**. After feedback, AUTO will not emit a fresh "Checkpoint 3 + 3.5 passed" banner; instead, success looks like "fixes pushed for [list]" or simply "done, pushed" or any return that is neither a gate question nor a failure indication.
@@ -261,6 +399,19 @@ gh pr merge "$PR_NUMBER" --merge   # NOT --squash; preserve commits per the user
 ```
 
 If merge fails with a conflict against the integration branch: halt. Update `state.json`: `phase = "task-halted"`, `lastHaltQuestion = "gh pr merge failed: <error>. Conductor does not auto-resolve conflicts."`
+
+   **Emit `merge-decision`:**
+   ```bash
+   EVENT_JSON=$(jq -nc \
+     --arg ts "$(date -u +%FT%TZ)" \
+     --arg phase "awaiting-merge" \
+     --argjson taskId "$TASK_ID" \
+     --argjson prNumber "$PR_NUMBER" \
+     --arg result "$MERGE_RESULT" \
+     --arg mergeSha "$MERGE_SHA" \
+     '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"merge-decision", prNumber:$prNumber, result:$result, mergeSha:$mergeSha}')
+   echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+   ```
 
 ### Step 11: Refresh the conductor worktree
 
@@ -352,6 +503,29 @@ When no pending tasks remain:
    > Roadmap `<roadmapId>` complete. Final PR: `<url>`.
    > <count> tasks merged into `<integrationBranch>`. Awaiting your review and merge.
 
+   **Emit `roadmap-end`:**
+   ```bash
+   EVENT_JSON=$(jq -nc \
+     --arg ts "$(date -u +%FT%TZ)" \
+     --arg phase "done" \
+     --arg finalPrUrl "$FINAL_PR_URL" \
+     --argjson tasksCompleted "$TASKS_COMPLETED" \
+     --argjson tasksHalted "$TASKS_HALTED" \
+     --arg totalDuration "$TOTAL_DURATION" \
+     '{ts:$ts, phase:$phase, taskId:null, eventType:"roadmap-end", finalPrUrl:$finalPrUrl, tasksCompleted:$tasksCompleted, tasksHalted:$tasksHalted, totalDuration:$totalDuration}')
+   echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+   ```
+
+   This is the FINAL event in the buffer; flush it to `conductor.log.jsonl` immediately rather than waiting for a per-task flush:
+
+   ```bash
+   cat "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/conductor.log.jsonl"
+   : > "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+   git -C "$WORKTREE" add "docs/roadmaps/$ROADMAP_ID/conductor.log.jsonl"
+   git -C "$WORKTREE" commit -m "chore(conductor): flush roadmap-end events"
+   git -C "$WORKTREE" push
+   ```
+
 6. Run worktree cleanup:
    ```bash
    git worktree remove "$WORKTREE"
@@ -396,6 +570,19 @@ Whenever a halt fires (either phase above):
    ```
    This step is identical for both halt modes — the `roadmap.md` status is the same regardless of whether the ephemeral phase is `auto-blocked-on-gate` or `task-halted`. The phase distinguishes resume strategy; the `roadmap.md` flip just records "this task is not currently progressing."
 3. **Surface the halt to the user** with the message described in `answer-authority.md` § The halt protocol (for gate halts) or the equivalent text for terminal halts (failed merge, fix-loop exceeded, contract violation, AUTO failure). Include the verbatim `lastHaltQuestion` in the surface message.
+
+   **Emit `task-halted`:**
+   ```bash
+   EVENT_JSON=$(jq -nc \
+     --arg ts "$(date -u +%FT%TZ)" \
+     --arg phase "$HALT_PHASE" \
+     --argjson taskId "$TASK_ID" \
+     --arg lastHaltQuestion "$LAST_HALT_QUESTION" \
+     --arg cause "$HALT_CAUSE" \
+     '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"task-halted", lastHaltQuestion:$lastHaltQuestion, cause:$cause}')
+   echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+   ```
+
 4. **Exit the turn.** On the user's next message, treat it as a directive: typically `resume`, `restart`, `abort`, or a free-form correction. The resume path in `resume-procedure.md` flips `roadmap.md` status back to `in-progress` before continuing (regardless of which halt phase preceded).
 
 This mirroring ensures the durable `roadmap.md` accurately reflects the halted state — important for crash recovery (state.json may be lost; roadmap.md is durable on the integration branch and pushed to the remote).
