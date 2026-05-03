@@ -27,7 +27,7 @@ These MUST hold before conductor runs. Verify each at session start; halt with a
 - **Roadmap file exists.** `docs/roadmaps/<roadmap-id>/roadmap.md` is present, readable, and contains at least one task. Format: see `roadmap-format.md`.
 - **`roadmap-meta.md` exists** in the same directory and declares the integration branch's base (defaults to `main`). Format: see `roadmap-format.md`.
 - **`gh` CLI is authenticated** against the repo's GitHub remote. Run `gh auth status` and `gh repo view --json name,owner` — both must succeed. Conductor cannot function without GitHub.
-- **Working tree is clean** at session start. Run `git status --porcelain`; abort if non-empty (the user has uncommitted work).
+- **Working tree is clean OR has only whitelisted seed-file changes.** Run `git status --porcelain`. The output is acceptable IFF every dirty path matches `docs/roadmaps/<roadmap-id>/*.md` (i.e., the seed files for THIS roadmap). Any non-whitelisted dirty path → abort: "Uncommitted work outside `docs/roadmaps/<roadmap-id>/`. Commit or stash before invoking conductor." This relaxation enables the auto-commit hand-off described in `conducting-flow.md` § Step 0.
 - **No conflicting worktree.** If `<repo>/.worktrees/conductor-<roadmap-id>/` already exists, ask the user before overwriting (they may be resuming).
 
 ## Composed skills
