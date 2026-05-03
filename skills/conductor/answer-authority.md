@@ -97,6 +97,20 @@ When answering:
      '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"gate-decision", subAgentId:$subAgentId, gateQuestion:$gateQuestion, decision:$decision, groundingSource:$groundingSource, category:$category}')
    echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
    ```
+
+   **Co-emit `agent-message` (kind: `gate-answer`):**
+   ```bash
+   MSG_JSON=$(jq -nc \
+     --arg ts "$(date -u +%FT%TZ)" \
+     --arg phase "auto-running" \
+     --argjson taskId "$TASK_ID" \
+     --arg subAgentId "$SUB_AGENT_ID" \
+     --arg body "$ANSWER_MESSAGE" \
+     '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"agent-message", sender:"conductor", recipient:"auto", subAgentId:$subAgentId, messageKind:"gate-answer", body:$body}')
+   echo "$MSG_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+   ```
+   `$ANSWER_MESSAGE` is the verbatim text conductor is about to SendMessage to AUTO (composed in step 2 of this protocol). Setting it before the agent-message emission keeps the body honest — the durable record matches what the agent actually receives.
+
 2. Compose the answer message. For Category B, include a citation: `"per task-<N>/summary.md, decision: <X>"`.
 3. SendMessage to `subAgentId`.
 4. Move on. Do NOT also surface the question to the user — the whole point is silent autonomy when grounding is sufficient.
