@@ -434,11 +434,93 @@ Inside the worktree, create `docs/roadmaps/$ROADMAP_ID/task-$TASK_ID/`. Write `s
 
 Edit `roadmap.md`: change task `<id>` status from `in-progress` to `done`.
 
+**Emit `task-done` event** (last event for this task before flush):
+```bash
+EVENT_JSON=$(jq -nc \
+  --arg ts "$(date -u +%FT%TZ)" \
+  --arg phase "summary-writing" \
+  --argjson taskId "$TASK_ID" \
+  --argjson prNumber "$PR_NUMBER" \
+  --arg summaryPath "docs/roadmaps/$ROADMAP_ID/task-$TASK_ID/summary.md" \
+  --arg journalPath "docs/roadmaps/$ROADMAP_ID/task-$TASK_ID/journal.md" \
+  --arg mergeSha "$MERGE_SHA" \
+  '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"task-done", prNumber:$prNumber, summaryPath:$summaryPath, journalPath:$journalPath, mergeSha:$mergeSha}')
+echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+```
+
+**Flush the buffer onto the durable log:**
+```bash
+cat "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl" \
+  >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/conductor.log.jsonl"
+: > "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+```
+
+This is idempotent. If the flush is interrupted partway (crash between cat and truncate), the next conductor session re-running this block re-appends the (now-empty if cat completed, or partial otherwise) buffer and truncates again. Worst case: a few duplicate events in `conductor.log.jsonl`, no data loss.
+
+**Generate `task-<id>/journal.md`:**
+
+Read this task's slice of `conductor.log.jsonl` (events with `taskId == $TASK_ID`, ordered by `ts`). Render the journal per the template documented in `roadmap-format.md` § `task-<N>/journal.md`. Concretely:
+
+```bash
+# Filter the log to this task's events
+TASK_EVENTS=$(jq -c "select(.taskId == $TASK_ID)" "$WORKTREE/docs/roadmaps/$ROADMAP_ID/conductor.log.jsonl")
+
+# Build the journal file (jq + sed; see roadmap-format.md for the exact template)
+cat > "$WORKTREE/docs/roadmaps/$ROADMAP_ID/task-$TASK_ID/journal.md" <<EOF
+# Task $TASK_ID — $TASK_TITLE
+
+**Branch:** \`$CURRENT_BRANCH\`   |   **PR:** [#$PR_NUMBER]($PR_URL) (merged at $MERGE_SHA)
+**Started:** $(echo "$TASK_EVENTS" | jq -r 'select(.eventType == "task-start") | .ts' | head -1)   |   **Done:** $(echo "$TASK_EVENTS" | jq -r 'select(.eventType == "task-done") | .ts' | head -1)
+
+## Timeline
+
+$(echo "$TASK_EVENTS" | while read -r EV; do
+  TS=$(echo "$EV" | jq -r '.ts' | cut -dT -f2 | cut -d. -f1)
+  TYPE=$(echo "$EV" | jq -r '.eventType')
+  case "$TYPE" in
+    task-start)         echo "$TS  Picked task (branch: $(echo "$EV" | jq -r '.branchKey'))" ;;
+    auto-dispatched)    echo "$TS  Dispatched AUTO (sub-agent $(echo "$EV" | jq -r '.subAgentId'))" ;;
+    auto-returned)      echo "$TS  AUTO returned ($(echo "$EV" | jq -r '.returnType'))" ;;
+    gate-decision)      echo "$TS  Gate decision: $(echo "$EV" | jq -r '.decision') (Category $(echo "$EV" | jq -r '.category'))" ;;
+    review-dispatched)  echo "$TS  Dispatched review against PR #$(echo "$EV" | jq -r '.prNumber')" ;;
+    review-verdict)     echo "$TS  Review: $(echo "$EV" | jq -r '.mustFixesCount') must-fixes, $(echo "$EV" | jq -r '.nitsCount') nits, CI $(echo "$EV" | jq -r '.ciStatus')" ;;
+    feedback-sent)      echo "$TS  Sent feedback to AUTO (round $(echo "$EV" | jq -r '.fixLoopRound'))" ;;
+    merge-decision)     echo "$TS  Merged PR (commit $(echo "$EV" | jq -r '.mergeSha'))" ;;
+    task-halted)        echo "$TS  Halted: $(echo "$EV" | jq -r '.cause')" ;;
+    task-done)          echo "$TS  Wrote summary, marked done" ;;
+  esac
+done)
+
+## Gate decisions
+
+$(echo "$TASK_EVENTS" | jq -r 'select(.eventType == "gate-decision") | "- **Q:** \(.gateQuestion)\n- **A:** \(if .decision == "answer" then .groundingSource else "[halted to human]" end)\n- **Category:** \(.category)\n"' | sed '/^$/d')
+
+## Review rounds
+
+$(echo "$TASK_EVENTS" | jq -r 'select(.eventType == "review-verdict") | "- Round \(.fixLoopRound // 0): \(.mustFixesCount) must-fixes, \(.nitsCount) nits, CI \(.ciStatus)"')
+EOF
+```
+
+If a section has zero events (no gate decisions, no review rounds), strip the heading post-hoc:
+```bash
+# Remove "## Gate decisions" if the section is empty
+awk '/^## Gate decisions$/{flag=1; buf=$0; next} flag && /^[^[:space:]]/ && /^## / {flag=0; print buf "\n" $0; next} flag && NF==0 {next} flag {flag=0; print buf; print} !flag {print}' \
+  "$WORKTREE/docs/roadmaps/$ROADMAP_ID/task-$TASK_ID/journal.md" > /tmp/journal.cleaned
+mv /tmp/journal.cleaned "$WORKTREE/docs/roadmaps/$ROADMAP_ID/task-$TASK_ID/journal.md"
+# Same for ## Review rounds
+```
+
+(The exact awk one-liner is illustrative — implementation may use a small script or handle it inline. The contract is: empty sections are stripped.)
+
+**Now commit everything together** (summary + journal + roadmap status flip + log flush):
+
 ```bash
 git -C "$WORKTREE" add docs/roadmaps/$ROADMAP_ID/
 git -C "$WORKTREE" commit -m "chore(conductor): complete task $TASK_ID — $TASK_TITLE"
 git -C "$WORKTREE" push
 ```
+
+The single commit at task-done now includes: `summary.md`, `journal.md`, `roadmap.md` (status flip), and `conductor.log.jsonl` (buffer flush). One commit per task — no extra noise on the integration branch.
 
 Update `state.json`:
 - `phase = "done"`
