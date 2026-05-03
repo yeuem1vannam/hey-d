@@ -62,7 +62,18 @@ Resume is the recovery primitive after any halt or crash. It mirrors AUTO's exis
 
 - [ ] **Step 6: Wait for user choice. Dispatch on it.**
 
-  - **`resume`** → If the task's status in `roadmap.md` is `halted`, first commit a flip back to `in-progress` in the conductor worktree (`git -C "$WORKTREE" commit -am "chore(conductor): resume task $TASK_ID"; git -C "$WORKTREE" push`) so the durable record reflects active work. Then execute the phase-specific resume action. See the `phase` enum table in `state-schema.md`. Concretely:
+  - **`resume`** → emit `task-resumed`:
+    ```bash
+    EVENT_JSON=$(jq -nc \
+      --arg ts "$(date -u +%FT%TZ)" \
+      --arg phase "$CURRENT_PHASE" \
+      --argjson taskId "$TASK_ID" \
+      --arg resumeAction "resume" \
+      --arg userMessage "$USER_MESSAGE" \
+      '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"task-resumed", resumeAction:$resumeAction, userMessage:$userMessage}')
+    echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+    ```
+    Then: If the task's status in `roadmap.md` is `halted`, first commit a flip back to `in-progress` in the conductor worktree (`git -C "$WORKTREE" commit -am "chore(conductor): resume task $TASK_ID"; git -C "$WORKTREE" push`) so the durable record reflects active work. Then execute the phase-specific resume action. See the `phase` enum table in `state-schema.md`. Concretely:
     - `auto-running` / `auto-blocked-on-gate` / `review-feedback-sent` → SendMessage `subAgentId` if `<alive>`; else re-dispatch (see Re-dispatch section in `conducting-flow.md`).
     - `awaiting-review` → dispatch the review agent on `prNumber` using `currentSpecPath` from state.
     - `review-running` → SendMessage `currentReviewId` if alive; else re-dispatch review.
@@ -71,9 +82,29 @@ Resume is the recovery primitive after any halt or crash. It mirrors AUTO's exis
     - `task-halted` → ask the user for a corrective action; do not auto-retry the same failure.
     - `done` → pick the next task (transition into `dispatching`).
 
-  - **`restart`** → revert dirty working-tree changes (`git checkout -- .`), delete the feat branch (`git branch -D <currentBranch>`), reset `state.json`'s in-flight fields (preserve `roadmapId` and `currentTaskId`; null everything else; set `phase = dispatching`), then re-run the task from the top of `conducting-flow.md`'s per-task loop.
+  - **`restart`** → emit `task-resumed`:
+    ```bash
+    EVENT_JSON=$(jq -nc \
+      --arg ts "$(date -u +%FT%TZ)" \
+      --arg phase "$CURRENT_PHASE" \
+      --argjson taskId "$TASK_ID" \
+      --arg resumeAction "restart" \
+      '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"task-resumed", resumeAction:$resumeAction, userMessage:null}')
+    echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+    ```
+    Then: revert dirty working-tree changes (`git checkout -- .`), delete the feat branch (`git branch -D <currentBranch>`), reset `state.json`'s in-flight fields (preserve `roadmapId` and `currentTaskId`; null everything else; set `phase = dispatching`), then re-run the task from the top of `conducting-flow.md`'s per-task loop.
 
-  - **`abort`** → leave the working tree as-is. Do NOT push. Do NOT modify `roadmap.md`. Exit cleanly with a one-line summary of what state is on disk, so the user can decide what to do next.
+  - **`abort`** → emit `task-resumed`:
+    ```bash
+    EVENT_JSON=$(jq -nc \
+      --arg ts "$(date -u +%FT%TZ)" \
+      --arg phase "$CURRENT_PHASE" \
+      --argjson taskId "$TASK_ID" \
+      --arg resumeAction "abort" \
+      '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"task-resumed", resumeAction:$resumeAction, userMessage:null}')
+    echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+    ```
+    Then: leave the working tree as-is. Do NOT push. Do NOT modify `roadmap.md`. Exit cleanly with a one-line summary of what state is on disk, so the user can decide what to do next.
 
 ## When the durable state is also damaged
 

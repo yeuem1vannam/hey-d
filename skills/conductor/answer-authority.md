@@ -52,6 +52,19 @@ These are product or design decisions outside conductor's authority.
 When halting on an unanswerable gate, follow `conducting-flow.md` § Halt-to-human end-to-end. Specifically:
 
 1. Update `state.json`: set `phase = "auto-blocked-on-gate"`, set `lastHaltAt` to now, set `lastHaltQuestion` to the verbatim AUTO question.
+1.5. **Emit `gate-decision`:**
+   ```bash
+   EVENT_JSON=$(jq -nc \
+     --arg ts "$(date -u +%FT%TZ)" \
+     --arg phase "auto-blocked-on-gate" \
+     --argjson taskId "$TASK_ID" \
+     --arg subAgentId "$SUB_AGENT_ID" \
+     --arg gateQuestion "$LAST_HALT_QUESTION" \
+     --arg decision "halt" \
+     --arg category "$CATEGORY" \
+     '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"gate-decision", subAgentId:$subAgentId, gateQuestion:$gateQuestion, decision:$decision, groundingSource:null, category:$category}')
+   echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+   ```
 2. Commit `halted` to `roadmap.md` in the conductor worktree (the durable record). Do this even though the halt is recoverable — `roadmap.md` reflects "task is not currently progressing," and the resume path flips it back to `in-progress`.
 3. Surface to the user a single message:
 
@@ -70,6 +83,20 @@ When halting on an unanswerable gate, follow `conducting-flow.md` § Halt-to-hum
 When answering:
 
 1. Update `state.json`: ensure `phase = auto-running` (it was `auto-blocked-on-gate` for the duration of the decision).
+1.5. **Emit `gate-decision`:**
+   ```bash
+   EVENT_JSON=$(jq -nc \
+     --arg ts "$(date -u +%FT%TZ)" \
+     --arg phase "auto-running" \
+     --argjson taskId "$TASK_ID" \
+     --arg subAgentId "$SUB_AGENT_ID" \
+     --arg gateQuestion "$GATE_QUESTION" \
+     --arg decision "answer" \
+     --arg groundingSource "$GROUNDING_SOURCE" \
+     --arg category "$CATEGORY" \
+     '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"gate-decision", subAgentId:$subAgentId, gateQuestion:$gateQuestion, decision:$decision, groundingSource:$groundingSource, category:$category}')
+   echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+   ```
 2. Compose the answer message. For Category B, include a citation: `"per task-<N>/summary.md, decision: <X>"`.
 3. SendMessage to `subAgentId`.
 4. Move on. Do NOT also surface the question to the user — the whole point is silent autonomy when grounding is sufficient.
