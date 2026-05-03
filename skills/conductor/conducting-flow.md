@@ -139,8 +139,13 @@ All timestamp values use the system clock at emission time. All `phase` values m
 | § Halt-to-human (any halt path) | `task-halted` |
 | `resume-procedure.md` Step 6 (resume choice) | `task-resumed` |
 | § End of roadmap | `roadmap-end` |
+| § Per-task loop, Step 5 (dispatch AUTO) | `agent-message` (kind: `dispatch-prompt`) |
+| § Per-task loop, Step 6 (handle AUTO return) | `agent-message` (kind: `gate-question`/`success-return`/`failure-return`/`fixes-pushed-return`) |
+| § Per-task loop, Step 8 (dispatch review) | `agent-message` (kind: `review-prompt`) |
+| § Per-task loop, Step 9 (process review return) | `agent-message` (kind: `review-return`); on loop-back also `agent-message` (kind: `feedback`) |
+| `answer-authority.md` answer protocol | `agent-message` (kind: `gate-answer`) |
 
-The emission is a single shell-line atomic append at each point. The following step-specific notes detail the JSON payload for each.
+The emission is a single shell-line atomic append at each point. Where co-emission applies (per `roadmap-format.md` § `messageKind` enum), the structural event and the sibling agent-message are two adjacent appends — POSIX guarantees each line lands intact, but the pair is not transactionally bound. The following step-specific notes detail both emissions per step.
 
 ## Per-task loop
 
@@ -253,6 +258,18 @@ Update `state.json`:
    echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
    ```
 
+   **Co-emit `agent-message` (kind: `dispatch-prompt`):**
+   ```bash
+   MSG_JSON=$(jq -nc \
+     --arg ts "$(date -u +%FT%TZ)" \
+     --arg phase "auto-running" \
+     --argjson taskId "$TASK_ID" \
+     --arg subAgentId "$SUB_AGENT_ID" \
+     --arg body "$DISPATCH_PROMPT" \
+     '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"agent-message", sender:"conductor", recipient:"auto", subAgentId:$subAgentId, messageKind:"dispatch-prompt", body:$body}')
+   echo "$MSG_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+   ```
+
 ### Step 6: Handle AUTO's return
 
 AUTO will return at one of three points. Inspect its final message to classify:
@@ -274,6 +291,29 @@ AUTO will return at one of three points. Inspect its final message to classify:
      --arg returnMessageExcerpt "$(printf '%s' "$RETURN_MESSAGE" | head -c 500)" \
      '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"auto-returned", subAgentId:$subAgentId, returnType:$returnType, returnMessageExcerpt:$returnMessageExcerpt}')
    echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+   ```
+
+   **Co-emit `agent-message` (kind depends on `returnType`):**
+   ```bash
+   case "$RETURN_TYPE" in
+     gate)    MSG_KIND="gate-question" ;;
+     success) MSG_KIND="success-return" ;;
+     failure) MSG_KIND="failure-return" ;;
+     *)       MSG_KIND="failure-return" ;;  # safe default for unknown
+   esac
+   # If this return came after a feedback round (FIX_LOOP_ROUND > 0 and returnType is success), the kind is fixes-pushed-return:
+   if [ "$RETURN_TYPE" = "success" ] && [ "$FIX_LOOP_ROUND" -gt 0 ]; then
+     MSG_KIND="fixes-pushed-return"
+   fi
+   MSG_JSON=$(jq -nc \
+     --arg ts "$(date -u +%FT%TZ)" \
+     --arg phase "$CURRENT_PHASE" \
+     --argjson taskId "$TASK_ID" \
+     --arg subAgentId "$SUB_AGENT_ID" \
+     --arg messageKind "$MSG_KIND" \
+     --arg body "$RETURN_MESSAGE" \
+     '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"agent-message", sender:"auto", recipient:"conductor", subAgentId:$subAgentId, messageKind:$messageKind, body:$body}')
+   echo "$MSG_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
    ```
 
    **Emit `gate-decision` (only if returnType was `gate`):** at the moment conductor decides to answer or halt (per `answer-authority.md`):
@@ -329,6 +369,18 @@ Update `state.json`:
    echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
    ```
 
+   **Co-emit `agent-message` (kind: `review-prompt`):**
+   ```bash
+   MSG_JSON=$(jq -nc \
+     --arg ts "$(date -u +%FT%TZ)" \
+     --arg phase "review-running" \
+     --argjson taskId "$TASK_ID" \
+     --arg subAgentId "$CURRENT_REVIEW_ID" \
+     --arg body "$REVIEW_PROMPT" \
+     '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"agent-message", sender:"conductor", recipient:"review", subAgentId:$subAgentId, messageKind:"review-prompt", body:$body}')
+   echo "$MSG_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+   ```
+
 ### Step 9: Process review return
 
 Parse the review agent's return into `must-fixes` and `nits`. Then check CI:
@@ -368,6 +420,18 @@ When sending feedback (loop-back), update `state.json`:
    echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
    ```
 
+   **Co-emit `agent-message` (kind: `review-return`):**
+   ```bash
+   MSG_JSON=$(jq -nc \
+     --arg ts "$(date -u +%FT%TZ)" \
+     --arg phase "review-running" \
+     --argjson taskId "$TASK_ID" \
+     --arg subAgentId "$CURRENT_REVIEW_ID" \
+     --arg body "$REVIEW_RETURN_BODY" \
+     '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"agent-message", sender:"review", recipient:"conductor", subAgentId:$subAgentId, messageKind:"review-return", body:$body}')
+   echo "$MSG_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+   ```
+
    **Emit `feedback-sent` (only when SendMessaging feedback to AUTO):**
    ```bash
    EVENT_JSON=$(jq -nc \
@@ -379,6 +443,18 @@ When sending feedback (loop-back), update `state.json`:
      --argjson fixLoopRound "$FIX_LOOP_ROUND" \
      '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"feedback-sent", subAgentId:$subAgentId, feedbackBody:$feedbackBody, fixLoopRound:$fixLoopRound}')
    echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+   ```
+
+   **Co-emit `agent-message` (kind: `feedback`):**
+   ```bash
+   MSG_JSON=$(jq -nc \
+     --arg ts "$(date -u +%FT%TZ)" \
+     --arg phase "review-feedback-sent" \
+     --argjson taskId "$TASK_ID" \
+     --arg subAgentId "$SUB_AGENT_ID" \
+     --arg body "$FEEDBACK_BODY" \
+     '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"agent-message", sender:"conductor", recipient:"auto", subAgentId:$subAgentId, messageKind:"feedback", body:$body}')
+   echo "$MSG_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
    ```
 
 When halting (any `task-halted` transition above), follow § Halt-to-human (commits `halted` to `roadmap.md` and surfaces to the user with `lastHaltQuestion = "Fix-loop exceeded N rounds. Latest review: <summary>. Latest CI: <green|red>."`).
