@@ -13,7 +13,7 @@ This directory is **gitignored** (see `.gitignore`'s `docs/roadmaps/*/state/` li
 | Field | Type | Required | Purpose |
 |---|---|---|---|
 | `roadmapId` | string | yes | The roadmap-id this state belongs to. Sanity check on resume. |
-| `currentTaskId` | number | yes | Which task in `roadmap.md` is active. |
+| `currentTaskId` | number | yes | Which task in `roadmap.md` is active. The value is whatever `roadmap.md`'s `id` field holds — a GitHub issue number when `roadmap-meta.md` has `idsAreIssueNumbers: true`, a synthetic 1..N index otherwise. Conductor reads it literally. `0` is a sentinel meaning "no task picked yet" used only at fresh-state initialization. |
 | `currentBranch` | string \| null | yes | Per-task feat branch checked out on the main tree (e.g., `feat/2-token-storage`). Null only between tasks. |
 | `subAgentId` | string \| null | yes | The dispatched AUTO agent's ID, used for SendMessage continuation. Null when no AUTO is running. |
 | `dispatchedAt` | ISO-8601 string \| null | yes | When the current AUTO dispatch went out. Used to detect stuck agents. |
@@ -102,3 +102,34 @@ mv "$TMP" "$STATE_PATH"
 ```
 
 Never write directly to `state.json`. A crash mid-`echo` would leave the file unparseable.
+
+## Event log buffer
+
+A second gitignored file lives next to `state.json`:
+
+```
+docs/roadmaps/<roadmap-id>/state/events.buffer.jsonl
+```
+
+Append-only, one JSON event per line. Used by conductor to accumulate events during a task before flushing them to the durable `conductor.log.jsonl` (committed at task-boundaries). Schema for the events themselves lives in `roadmap-format.md` § `conductor.log.jsonl`.
+
+### Append rule
+
+Single-line writes only. POSIX guarantees the line lands intact:
+
+```bash
+echo "$EVENT_JSON" >> "$STATE_DIR/events.buffer.jsonl"
+```
+
+Never use multi-line writes; an interrupted write would corrupt the JSONL and make resume impossible. If an event payload contains newlines, escape them in the JSON encoding (most JSON encoders do this by default).
+
+### Flush rule
+
+At task-done (per `conducting-flow.md` Step 12):
+
+```bash
+cat "$STATE_DIR/events.buffer.jsonl" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/conductor.log.jsonl"
+: > "$STATE_DIR/events.buffer.jsonl"
+```
+
+Flush is idempotent — re-running it on a partially-flushed state appends the buffer's current contents (which is empty after a successful prior flush) and truncates again. Resume that detects an interrupted flush re-runs the same two commands.
