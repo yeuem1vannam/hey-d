@@ -36,7 +36,7 @@ tasks:
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `id` | number | yes | Strictly increasing from 1. No gaps. |
+| `id` | number | yes | When the roadmap was produced by the `ROADMAP:` brainstorm flow, this is the GitHub issue number (e.g., `117`). When the roadmap is hand-written, this is a synthetic 1..N index, strictly increasing from 1, no gaps. Conductor doesn't differentiate — it uses `id` literally for branch naming, summary directory naming, and event-log keys. The `idsAreIssueNumbers` field in `roadmap-meta.md` declares which world this roadmap is in. |
 | `title` | string | yes | One-line description used as the dispatch prompt's task description. |
 | `deps` | number[] | yes | List of `id`s that must be `done` before this task is eligible. May be empty. |
 | `status` | enum | yes | `pending` initially, transitions per phase machine in `state-schema.md`. |
@@ -64,6 +64,7 @@ baseBranch: main
 createdAt: 2026-04-30T10:00:00Z
 owner: dev@zapass.co
 integrationBranch: conductor/auth-rewrite
+idsAreIssueNumbers: false
 ---
 ```
 
@@ -76,6 +77,7 @@ integrationBranch: conductor/auth-rewrite
 | `createdAt` | ISO-8601 string | yes | Timestamp of init. Set once; never updated. |
 | `owner` | string | no | Email or username for human-facing reporting. |
 | `integrationBranch` | string | yes | The branch name conductor creates. Convention: `conductor/<roadmapId>`. |
+| `idsAreIssueNumbers` | bool | no | Default `false`. When `true`, conductor treats `roadmap.md`'s `id` values as GitHub issue numbers (used in PR bodies for "Closes #<id>" auto-close phrasing and final-PR title formatting). The `ROADMAP:` flow always sets this to `true`. Hand-written roadmaps default to `false`. |
 
 `roadmap-meta.md` is written ONCE at init and amended only on explicit user action.
 
@@ -130,6 +132,97 @@ Written ONCE per task by conductor when AUTO returns success and the per-task PR
 - The four section headings (`## Built`, `## Decided`, `## Touched`, `## Gotchas`) are MANDATORY and case-sensitive. Conductor reads them by exact match when assembling context for downstream tasks.
 - Each section may be empty (write `None.`) but the heading must still be present.
 - The leading metadata block (Branch / PR / AUTO spec / AUTO plan) is mandatory; without it conductor can't reconstruct the task's git context on a future read.
+
+## `conductor.log.jsonl`
+
+A per-roadmap append-only event log. Lives at `docs/roadmaps/<roadmap-id>/conductor.log.jsonl`. Committed to the integration branch at task boundaries (one flush per task-done commit). The file is durable project history — every gate decision, every dispatch, every halt is recorded.
+
+### Event shape
+
+Every event is a single line of valid JSON. All events share these top-level fields:
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `ts` | ISO-8601 string | yes | When the event occurred. |
+| `phase` | string | yes | The conductor phase at emission time (matches `state-schema.md` enum). |
+| `taskId` | number \| null | yes | The `id` from `roadmap.md` for the current task; null only for roadmap-level events. |
+| `eventType` | string | yes | Discriminator — one of the values below. |
+
+### Event types
+
+| `eventType` | Additional fields |
+|---|---|
+| `session-start` | `roadmapId`, `baseBranch`, `integrationBranch` |
+| `task-start` | `branchKey`, `dependencies` (array of ids) |
+| `auto-dispatched` | `subAgentId`, `dispatchPromptHash` (sha256 hex of full prompt), `branchContract` (verbatim) |
+| `auto-returned` | `subAgentId`, `returnType` (`success` / `gate` / `failure`), `returnMessageExcerpt` (first 500 chars) |
+| `gate-decision` | `subAgentId`, `gateQuestion` (verbatim), `decision` (`answer` / `halt`), `groundingSource` (when `decision == answer`), `category` (`A` / `B` / `C` per `answer-authority.md`) |
+| `review-dispatched` | `currentReviewId`, `prNumber` |
+| `review-verdict` | `currentReviewId`, `mustFixesCount`, `nitsCount`, `ciStatus` (`green` / `red`), `verbatimMustFixes` (array of strings) |
+| `feedback-sent` | `subAgentId`, `feedbackBody`, `fixLoopRound` |
+| `merge-decision` | `prNumber`, `result` (`merged` / `failed`), `mergeSha` |
+| `task-halted` | `lastHaltQuestion`, `cause` (`gate` / `failure` / `fix-loop-exhausted` / `merge-failed` / `contract-violation`) |
+| `task-resumed` | `resumeAction` (`resume` / `restart` / `abort`), `userMessage` (verbatim, only when `resumeAction == resume`) |
+| `task-done` | `prNumber`, `summaryPath`, `journalPath`, `mergeSha` |
+| `roadmap-end` | `finalPrUrl`, `tasksCompleted`, `tasksHalted`, `totalDuration` (ISO 8601 duration) |
+
+### Write mechanics (conductor side)
+
+- During a task, conductor appends each event to a buffer at `docs/roadmaps/<roadmap-id>/state/events.buffer.jsonl` (gitignored, in the conductor worktree). Atomic shell append:
+  ```bash
+  echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
+  ```
+- POSIX guarantees a single-line append is atomic — no temp-file dance needed.
+- At task-done, the buffer is concatenated onto the durable `conductor.log.jsonl` and the buffer is truncated. See `conducting-flow.md` Step 12.
+
+### Crash recovery
+
+- Buffer survives across crashes (real file in worktree). On resume, if the buffer is non-empty for a task that's not yet `done`, those events represent un-flushed work for the still-in-progress task — preserve.
+- If the buffer is non-empty and the task IS marked `done` in `roadmap.md`, the flush was interrupted — re-run the flush (concat + truncate) idempotently.
+
+## `task-<N>/journal.md`
+
+A human-readable narrative derived from the event log at task-done. Co-located with `summary.md` under `docs/roadmaps/<roadmap-id>/task-<id>/`. Generated once per task, NOT updated on resume.
+
+### Shape
+
+```markdown
+# Task <id> — <title>
+
+**Branch:** `feat/<id>-<keys>`   |   **PR:** [#<prNumber>](<prUrl>) (merged at <mergeSha>)
+**Started:** <ISO-8601 ts of session-start or task-resume>   |   **Done:** <ISO-8601 ts of task-done>   |   **Duration:** <hours:minutes>
+
+## Timeline
+
+<HH:MM:SS>  Dispatched AUTO with branch contract for <branchKey> (sub-agent <subAgentId>)
+<HH:MM:SS>  AUTO returned at Gate <A|B>: "<gateQuestion>"
+<HH:MM:SS>  Conductor answered "<answer>" — grounded in <groundingSource>; Category <A|B|C>
+<HH:MM:SS>  AUTO returned success — PR #<prNumber> opened
+<HH:MM:SS>  Dispatched review agent against PR #<prNumber> (sub-agent <currentReviewId>)
+<HH:MM:SS>  Review verdict: <mustFixesCount> must-fixes, <nitsCount> nits; CI <green|red>
+<HH:MM:SS>  Conductor merged PR #<prNumber> (commit <mergeSha>)
+<HH:MM:SS>  Wrote task-<id>/summary.md, marked roadmap.md task done
+
+## Gate decisions
+
+- **Q:** <gateQuestion>
+- **A:** <answer text or "[halted to human]">
+- **Source:** <groundingSource> (Category <A|B|C>)
+
+## Review rounds
+
+- Round <fixLoopRound>: <mustFixesCount> must-fixes, <nitsCount> nits, CI <green|red>
+  <if must-fixes:>  Sent feedback; AUTO pushed fixes
+```
+
+### Generation rules
+
+- Read the slice of `conductor.log.jsonl` corresponding to this task (from `task-start` to `task-done`).
+- For each event, emit one timeline line per the templates above.
+- Group `gate-decision` events under "Gate decisions" with the verbatim Q/A.
+- Group `review-verdict` events under "Review rounds".
+- If a section has zero events (e.g., no gate decisions), omit the heading.
+- Generation is deterministic — two runs over the same log slice produce identical journals.
 
 ## How conductor reads these files
 
