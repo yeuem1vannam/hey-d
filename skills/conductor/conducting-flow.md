@@ -14,6 +14,33 @@ Read each one fully before starting.
 
 Run these in order. Halt with a clear error on the first failure.
 
+0. **Detect or reuse a stashed seed bundle.**
+
+   State.json doesn't exist yet at this point (it's initialized in Step 7 inside the worktree). The recovery primitive for the seed-commit pipeline is therefore a **deterministic git stash message** — the stash itself records the pending hand-off across crashes.
+
+   Stash message format: `conductor:<roadmap-id>:seed`
+
+   a. Check for an existing stash entry with that exact message:
+      ```bash
+      git stash list | grep "conductor:<roadmap-id>:seed"
+      ```
+
+   b. **If an existing stash entry is found** (resume after a Step-0..Step-5a crash): do nothing here. Step 5a will pop it once the worktree is built. Skip to Step 1.
+
+   c. **Otherwise**, scan the working tree:
+      ```bash
+      git status --porcelain -- "docs/roadmaps/<roadmap-id>/"
+      ```
+
+      - If output is empty → no-op (user pre-committed the seed files, the v1 path). Skip to Step 1.
+      - If output is non-empty → stash the whitelisted files:
+        ```bash
+        git stash push --include-untracked \
+          -m "conductor:<roadmap-id>:seed" \
+          -- "docs/roadmaps/<roadmap-id>/"
+        ```
+        The deterministic message is the recovery contract.
+
 1. **Verify prerequisites** (per `SKILL.md` § Prerequisites): roadmap file exists, meta file exists, `gh` authenticated, working tree clean.
 2. **Load `roadmap-meta.md`.** Cache `baseBranch`, `integrationBranch`, `roadmapId`.
 3. **Detect existing in-flight state.** If `docs/roadmaps/<roadmapId>/state/state.json` exists, follow `resume-procedure.md` instead of init. Otherwise proceed to init.
@@ -24,6 +51,24 @@ Run these in order. Halt with a clear error on the first failure.
    ```
    This creates the integration branch on the remote without touching local working trees.
 5. **Init the conductor worktree.** Use `hey-d:using-git-worktrees` to create a worktree at `<repo>/.worktrees/conductor-<roadmapId>/` checked out to `$INTEGRATION_BRANCH`. Confirm with `git worktree list`.
+
+5a. **Check for the seed stash and pop it into the worktree if present.**
+
+    ```bash
+    STASH_REF=$(git stash list | grep "conductor:<roadmap-id>:seed" | head -1 | cut -d: -f1)
+    ```
+
+    - If `STASH_REF` is empty → no-op (user pre-committed; v1 path). Skip to Step 6.
+    - If `STASH_REF` is set:
+      ```bash
+      git -C "$WORKTREE" stash pop "$STASH_REF"
+      git -C "$WORKTREE" add "docs/roadmaps/<roadmap-id>/"
+      git -C "$WORKTREE" commit -m "chore(conductor): seed roadmap <roadmap-id>"
+      git -C "$WORKTREE" push
+      ```
+
+    The main tree is now clean. The seed files are committed durably on the integration branch and will reappear in the main tree's working area when conductor checks out the per-task feat branch (Step 3 of the per-task loop), since that branch is forked from the integration branch.
+
 6. **Init the state directory.** Inside the worktree:
    ```bash
    mkdir -p "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state"
