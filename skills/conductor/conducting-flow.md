@@ -574,6 +574,28 @@ $(echo "$TASK_EVENTS" | jq -r 'select(.eventType == "gate-decision") | "- **Q:**
 ## Review rounds
 
 $(echo "$TASK_EVENTS" | jq -r 'select(.eventType == "review-verdict") | "- Round \(.fixLoopRound // 0): \(.mustFixesCount) must-fixes, \(.nitsCount) nits, CI \(.ciStatus)"')
+
+## Conversation transcript
+
+$(echo "$TASK_EVENTS" | jq -c 'select(.eventType == "agent-message")' | while IFS= read -r MSG; do
+  TS=$(echo "$MSG" | jq -r '.ts' | cut -dT -f2 | sed 's/Z$//' | cut -d. -f1)
+  SENDER=$(echo "$MSG" | jq -r '.sender')
+  RECIPIENT=$(echo "$MSG" | jq -r '.recipient')
+  AID=$(echo "$MSG" | jq -r '.subAgentId // "—"')
+  KIND=$(echo "$MSG" | jq -r '.messageKind')
+  BODY=$(echo "$MSG" | jq -r '.body')
+  # Block header: agent's id rendered next to whichever side it sits on
+  if [ "$SENDER" = "conductor" ]; then
+    echo "### [$TS] conductor → $RECIPIENT ($AID) — $KIND"
+  else
+    echo "### [$TS] $SENDER ($AID) → conductor — $KIND"
+  fi
+  # Blockquote each body line; empty lines become bare ">"
+  printf '%s\n' "$BODY" | while IFS= read -r LINE; do
+    if [ -z "$LINE" ]; then echo ">"; else echo "> $LINE"; fi
+  done
+  echo
+done)
 EOF
 ```
 
@@ -584,6 +606,7 @@ awk '/^## Gate decisions$/{flag=1; buf=$0; next} flag && /^[^[:space:]]/ && /^##
   "$WORKTREE/docs/roadmaps/$ROADMAP_ID/task-$TASK_ID/journal.md" > /tmp/journal.cleaned
 mv /tmp/journal.cleaned "$WORKTREE/docs/roadmaps/$ROADMAP_ID/task-$TASK_ID/journal.md"
 # Same for ## Review rounds
+# Same for ## Conversation transcript (omit heading when no agent-message events exist — e.g., v2.5 logs read by v2.6 generator)
 ```
 
 (The exact awk one-liner is illustrative — implementation may use a small script or handle it inline. The contract is: empty sections are stripped.)
