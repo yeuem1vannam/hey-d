@@ -2,7 +2,7 @@
   "name": "hey-d",
   "displayName": "Hey D",
   "description": "Core skills library: TDD, debugging, collaboration patterns, and proven techniques",
-  "version": "5.0.7-d.10",
+  "version": "5.0.7-d.11",
   "author": {
     "name": "Jesse Vincent",
     "email": "jesse@fsck.com"
