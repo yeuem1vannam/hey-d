@@ -165,6 +165,27 @@ Every event is a single line of valid JSON. All events share these top-level fie
 | `task-resumed` | `resumeAction` (`resume` / `restart` / `abort`), `userMessage` (verbatim, only when `resumeAction == resume`) |
 | `task-done` | `prNumber`, `summaryPath`, `journalPath`, `mergeSha` |
 | `roadmap-end` | `finalPrUrl`, `tasksCompleted`, `tasksHalted`, `totalDuration` (ISO 8601 duration) |
+| `agent-message` | `sender` (`conductor`/`auto`/`review`), `recipient` (same enum), `subAgentId` (string \| null), `messageKind` (see § `messageKind` enum below), `body` (verbatim message text) |
+
+### `messageKind` enum (for `agent-message` events)
+
+`agent-message` events are co-emitted alongside structural events at every Conductor↔AUTO or Conductor↔Review exchange. The structural event keeps its existing typed metadata (counts, IDs, decisions); the agent-message carries the verbatim message body. **The agent-message body is the canonical location for the journal**; the structural-event verbatim fields (`branchContract`, `feedbackBody`, `verbatimMustFixes`) stay for backward compat and direct-query convenience.
+
+| `messageKind` | Sender → Recipient | Co-emitted with |
+|---|---|---|
+| `dispatch-prompt` | conductor → auto | `auto-dispatched` |
+| `gate-question` | auto → conductor | `auto-returned` (returnType=gate) |
+| `gate-answer` | conductor → auto | `gate-decision` (decision=answer) |
+| `success-return` | auto → conductor | `auto-returned` (returnType=success) |
+| `failure-return` | auto → conductor | `auto-returned` (returnType=failure) |
+| `review-prompt` | conductor → review | `review-dispatched` |
+| `review-return` | review → conductor | `review-verdict` |
+| `feedback` | conductor → auto | `feedback-sent` |
+| `fixes-pushed-return` | auto → conductor | `auto-returned` (after feedback push, returnType=success) |
+
+**Halt path:** a `gate-decision` with `decision: "halt"` does NOT co-emit a `gate-answer` agent-message — there is no answer when conductor halts to human.
+
+**Two-write atomicity:** the structural event and its sibling agent-message are two separate `echo … >>` appends. POSIX guarantees each single-line append is atomic, but a crash between the two writes leaves an orphaned structural event with no message body. The journal generator handles this with a `[message body unavailable]` placeholder block.
 
 ### Write mechanics (conductor side)
 
@@ -213,6 +234,14 @@ A human-readable narrative derived from the event log at task-done. Co-located w
 
 - Round <fixLoopRound>: <mustFixesCount> must-fixes, <nitsCount> nits, CI <green|red>
   <if must-fixes:>  Sent feedback; AUTO pushed fixes
+
+## Conversation transcript
+
+### [<HH:MM:SS>] <sender> → <recipient> (<subAgentId>) — <messageKind>
+> <body, blockquoted line by line>
+
+### [<HH:MM:SS>] <sender> → <recipient> (<subAgentId>) — <messageKind>
+> <body, blockquoted line by line>
 ```
 
 ### Generation rules
@@ -221,7 +250,9 @@ A human-readable narrative derived from the event log at task-done. Co-located w
 - For each event, emit one timeline line per the templates above.
 - Group `gate-decision` events under "Gate decisions" with the verbatim Q/A.
 - Group `review-verdict` events under "Review rounds".
-- If a section has zero events (e.g., no gate decisions), omit the heading.
+- Render `agent-message` events under "Conversation transcript" — one block per event, in chronological order. Block header: `### [HH:MM:SS] <sender> → <recipient> (<subAgentId>) — <messageKind>`. Body is blockquoted by prepending `> ` to each line; empty lines in the body become `>`.
+- If a structural event has no sibling agent-message (crash between the two writes, or a v2.5 log read by a v2.6 generator), insert a placeholder block: `### [HH:MM:SS] <sender> → <recipient> — <inferred kind from structural event> [message body unavailable]`.
+- If a section has zero events (e.g., no gate decisions, or no agent-messages because the log predates v2.6), omit the heading.
 - Generation is deterministic — two runs over the same log slice produce identical journals.
 
 ## How conductor reads these files
