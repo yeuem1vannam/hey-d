@@ -42,7 +42,7 @@ Run these in order. Halt with a clear error on the first failure.
         The deterministic message is the recovery contract.
 
 1. **Verify prerequisites** (per `SKILL.md` § Prerequisites): roadmap file exists, meta file exists, `gh` authenticated, working tree clean.
-2. **Load `roadmap-meta.md`.** Cache `baseBranch`, `integrationBranch`, `roadmapId`.
+2. **Load `roadmap-meta.md`.** Cache `baseBranch`, `integrationBranch`, `roadmapId`, `idsAreIssueNumbers` (default `false` if absent). The `idsAreIssueNumbers` flag is load-bearing for the dispatch prompt — see Step 4.
 3. **Detect existing in-flight state.** If `docs/roadmaps/<roadmapId>/state/state.json` exists, follow `resume-procedure.md` instead of init. Otherwise proceed to init.
 4. **Init the integration branch** (only on fresh roadmap, no existing state):
    ```bash
@@ -212,19 +212,31 @@ If the branch already exists locally (from a crashed prior run): use `git checko
 
 ### Step 4: Assemble the AUTO dispatch prompt
 
-The dispatch prompt MUST begin with the literal token `AUTO:` (this is what triggers AUTO mode in the brainstorming skill). After that prefix, the prompt body contains four sections in this order:
+The dispatch prompt MUST begin with the literal token `AUTO:` (this is what triggers AUTO mode in the brainstorming skill). After that prefix, the prompt body contains up to five sections in this order:
 
-1. **Task description** — copy verbatim from `roadmap.md` for this task.
-2. **Dependency context** — for each dep id D in `deps`, paste the entire body of `task-D/summary.md` (after a `## Prior task summary: task <D>` heading). Read these from the conductor worktree (since main tree may not see merged summaries until a later fetch). **If `deps` is empty, omit this section entirely (do not write a heading).**
-3. **Branch contract** — exact text, with `$CURRENT_BRANCH` and `$INTEGRATION_BRANCH` substituted with their actual values from `state.json` and `roadmap-meta.md` before sending (do NOT pass the literal placeholders through):
+1. **Task description** — copy verbatim from `roadmap.md` for this task. This is the one-line `title`; treat it as a label, not the spec.
+2. **GitHub issue (authoritative source)** — **include this section IFF `idsAreIssueNumbers == true`** (per `roadmap-meta.md`, cached at Step 2). Use this exact text, with `$TASK_ID` substituted to the task's `id` (which is the GitHub issue number when this flag is true):
+   > ## GitHub issue (authoritative source)
+   >
+   > This task corresponds to GitHub issue #`$TASK_ID`. Before you do anything else in your AUTO Step 1 exploration, run `gh issue view $TASK_ID --comments` and read the issue body and every comment. The issue may have been edited or commented on AFTER this roadmap was generated; the title above is a stale label, not the spec. **The GitHub issue body and its comments are the AUTHORITATIVE source of truth for what this task is.** If the issue's direction conflicts with the title or the dependency context, follow the issue. If the issue is closed or its acceptance criteria are unclear, return at Gate A (Step 2 clarifying) — do not guess.
+3. **Dependency context** — for each dep id D in `deps`, paste the entire body of `task-D/summary.md` (after a `## Prior task summary: task <D>` heading). Read these from the conductor worktree (since main tree may not see merged summaries until a later fetch). **If `deps` is empty, omit this section entirely (do not write a heading).**
+4. **Branch contract** — exact text, with `$CURRENT_BRANCH` and `$INTEGRATION_BRANCH` substituted with their actual values from `state.json` and `roadmap-meta.md` before sending (do NOT pass the literal placeholders through):
    > You are on `$CURRENT_BRANCH`, which is checked out off `$INTEGRATION_BRANCH`. All commits land on this branch. Do NOT switch branches. When you reach the implementation step's PR-creation phase via the `pull-request` skill, the PR base MUST be `$INTEGRATION_BRANCH`, NOT `main`. You MUST open the PR before returning success — returning without an open PR is a contract violation and conductor will halt.
-4. **Continuation note** (only on re-dispatch — see § Re-dispatch below).
+5. **Continuation note** (only on re-dispatch — see § Re-dispatch below).
+
+**When to omit Section 2:** if `idsAreIssueNumbers` is `false` (or absent — it defaults to `false`), there is no GitHub issue backing the `id` and the `roadmap.md` title is the only task description available. Skip Section 2 entirely; do NOT fabricate an issue number.
+
+**Why Section 2 instructs AUTO to fetch live rather than inlining the body:** the issue may have been edited between roadmap generation and dispatch (or between dispatch and AUTO's Step 1). A live fetch guarantees AUTO sees current state plus all comments. Conductor does not snapshot the issue at dispatch time because the snapshot would itself go stale and AUTO would have no way to know whether to trust it.
 
 **Branch-key derivation for `$CURRENT_BRANCH`:** lowercase the task title; drop stop-words (`a`, `an`, `the`, `about`, `and`, `or`, `to`, `for`, `of`, `in`, `on`); take the first 3 of the remainder; hyphen-join. So `"Add a one-line README note about the test"` → `feat/1-add-one-line-readme`. This rule is deterministic — two LLMs running the same roadmap produce the same branches.
 
-Final prompt shape (illustrative for task 2 with deps=[1]):
+Final prompt shape (illustrative for task 2 with deps=[1] and `idsAreIssueNumbers: true`):
 ```
 AUTO: <task description>
+
+## GitHub issue (authoritative source)
+
+This task corresponds to GitHub issue #2. Before you do anything else in your AUTO Step 1 exploration, run `gh issue view 2 --comments` and read the issue body and every comment. ...
 
 ## Prior task summary: task 1
 
@@ -234,6 +246,81 @@ AUTO: <task description>
 
 You are on `feat/2-add-second-one-line`, which is checked out off `conductor/test-conductor-smoke`. All commits land on this branch. ...
 ```
+
+For a roadmap with `idsAreIssueNumbers: false`, the same prompt omits the `## GitHub issue (authoritative source)` block entirely.
+
+### Step 4.5: Verbatim construction contract (MANDATORY)
+
+The dispatch prompt is a **literal string** assembled by section concatenation. It is NOT a description of what conductor wants AUTO to do, NOT a paraphrase of the task, NOT a narrative summary. The variable `$DISPATCH_PROMPT` referenced throughout the rest of this flow is that literal string.
+
+**Variable legend** (used in this section's snippets):
+- `$TASK_TITLE` — verbatim `title` from `roadmap.md` for the current task.
+- `$TASK_ID` — current task's `id` (a GitHub issue number when `idsAreIssueNumbers: true`).
+- `$IDS_ARE_ISSUE_NUMBERS` — cached at Step 2; string `"true"` or `"false"`.
+- `$DEP_IDS` — space-separated list of dependency ids (may be empty).
+- `$DEP_ID` — single dep id, used inside the heredoc loop body.
+- `$CURRENT_BRANCH`, `$INTEGRATION_BRANCH`, `$WORKTREE`, `$ROADMAP_ID` — as elsewhere in this flow.
+
+**Hard rules:**
+
+1. **Build by literal heredoc, not by description.** Construct `$DISPATCH_PROMPT` like this (illustrative skeleton — substitute real values, do NOT execute as-is):
+   ```bash
+   DISPATCH_PROMPT=$(cat <<EOF
+   AUTO: $TASK_TITLE
+
+   ## GitHub issue (authoritative source)
+
+   This task corresponds to GitHub issue #$TASK_ID. Before you do anything else in your AUTO Step 1 exploration, run \`gh issue view $TASK_ID --comments\` and read the issue body and every comment. The issue may have been edited or commented on AFTER this roadmap was generated; the title above is a stale label, not the spec. **The GitHub issue body and its comments are the AUTHORITATIVE source of truth for what this task is.** If the issue's direction conflicts with the title or the dependency context, follow the issue. If the issue is closed or its acceptance criteria are unclear, return at Gate A (Step 2 clarifying) — do not guess.
+
+   ## Prior task summary: task $DEP_ID
+
+   $(cat "$WORKTREE/docs/roadmaps/$ROADMAP_ID/task-$DEP_ID/summary.md")
+
+   ## Branch contract
+
+   You are on \`$CURRENT_BRANCH\`, which is checked out off \`$INTEGRATION_BRANCH\`. All commits land on this branch. Do NOT switch branches. When you reach the implementation step's PR-creation phase via the \`pull-request\` skill, the PR base MUST be \`$INTEGRATION_BRANCH\`, NOT \`main\`. You MUST open the PR before returning success — returning without an open PR is a contract violation and conductor will halt.
+   EOF
+   )
+   # On re-dispatch only, append the Section 5 continuation note — see § Re-dispatch.
+   ```
+   Loop the dependency block once per `$DEP_ID` in `$DEP_IDS`. Skip the GitHub-issue block when `$IDS_ARE_ISSUE_NUMBERS != "true"`. Append the Section 5 continuation note ONLY on re-dispatch (per § Re-dispatch). The point of the heredoc is mechanical assembly — there is no creative paraphrase step.
+
+2. **Pre-dispatch self-check (REQUIRED before Step 5; also REQUIRED on re-dispatch — see § Re-dispatch).** Before calling the Agent tool, verify the assembled string passes ALL of these checks:
+   ```bash
+   # Sanity backstop: a multi-section structured prompt is hundreds of bytes minimum.
+   # 200 is far below any plausible real prompt (~400+ bytes for the smallest case)
+   # and above any one-sentence narrative paraphrase. The structural heading checks
+   # below are the primary defense; this catches absurd truncation.
+   [ ${#DISPATCH_PROMPT} -ge 200 ] || { echo "FATAL: dispatch prompt absurdly short — looks paraphrased or truncated"; exit 1; }
+   # Required prefix
+   case "$DISPATCH_PROMPT" in
+     "AUTO: "*) ;;
+     *) echo "FATAL: dispatch prompt does not begin with 'AUTO: '"; exit 1 ;;
+   esac
+   # Required heading
+   printf '%s' "$DISPATCH_PROMPT" | grep -qF "## Branch contract" \
+     || { echo "FATAL: dispatch prompt missing '## Branch contract' heading"; exit 1; }
+   # Required heading when idsAreIssueNumbers — separate greps so flag ordering doesn't matter
+   if [ "$IDS_ARE_ISSUE_NUMBERS" = "true" ]; then
+     printf '%s' "$DISPATCH_PROMPT" | grep -qF "## GitHub issue (authoritative source)" \
+       || { echo "FATAL: idsAreIssueNumbers=true but '## GitHub issue (authoritative source)' heading missing"; exit 1; }
+     # Match `gh issue view` and the task id independently so `--comments` flag position doesn't matter.
+     printf '%s' "$DISPATCH_PROMPT" | grep -qF "gh issue view" \
+       || { echo "FATAL: GitHub-issue section does not invoke 'gh issue view'"; exit 1; }
+     printf '%s' "$DISPATCH_PROMPT" | grep -qE "(^|[^0-9])${TASK_ID}([^0-9]|\$)" \
+       || { echo "FATAL: GitHub-issue section does not reference task id #$TASK_ID"; exit 1; }
+   fi
+   # Required heading per dep
+   for D in $DEP_IDS; do
+     printf '%s' "$DISPATCH_PROMPT" | grep -qF "## Prior task summary: task $D" \
+       || { echo "FATAL: dep $D summary heading missing"; exit 1; }
+   done
+   ```
+   If any check fails, do NOT dispatch. Re-assemble the prompt from the heredoc above; do not edit the failing prompt by hand.
+
+3. **Same string, twice.** The `$DISPATCH_PROMPT` you pass to the `Agent` tool's `prompt` parameter at Step 5 is the same string you pass into the agent-message body field. They are not two different things — they are the same string referenced twice. Encoding note: `jq --arg body "$DISPATCH_PROMPT"` produces a properly-escaped JSON string on disk; the on-disk JSON line is not byte-identical to `$DISPATCH_PROMPT` (newlines, quotes, backslashes are escaped), but the *decoded* body round-trips exactly — `jq -r '.body' <line>` reproduces `$DISPATCH_PROMPT` byte-for-byte. Hash check: `sha256sum` of `$DISPATCH_PROMPT` (recorded as `dispatchPromptHash` in the `auto-dispatched` event) must equal `sha256sum` of `jq -r '.body' <agent-message-line>`. If they don't match, the body was paraphrased and the journal is lying.
+
+4. **No "spirit of" substitutions.** Anti-pattern: sending the literal heredoc to AUTO but recording a one-sentence summary like `"Conductor dispatched AUTO with explicit instructions to fold the XOR CHECK constraint from #70 into the generated migration.sql, the recommended --create-only workflow…"` in the agent-message body. That exact paraphrase shape was observed in production and motivates this contract. The body field receives `$DISPATCH_PROMPT` byte-for-byte, regardless of length. Long is fine; the journal renderer handles blockquoting any length.
 
 ### Step 5: Dispatch AUTO
 
@@ -259,6 +346,8 @@ Update `state.json`:
    ```
 
    **Co-emit `agent-message` (kind: `dispatch-prompt`):**
+
+   The `body` field is `$DISPATCH_PROMPT` **verbatim** — the same literal string passed to the `Agent` tool's `prompt` parameter above, byte-for-byte. Per Step 4.5 § rule 3, the journal body and the dispatched prompt are the same object referenced twice; do NOT paraphrase, summarize, or shorten when constructing the JSON.
    ```bash
    MSG_JSON=$(jq -nc \
      --arg ts "$(date -u +%FT%TZ)" \
@@ -269,6 +358,8 @@ Update `state.json`:
      '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"agent-message", sender:"conductor", recipient:"auto", subAgentId:$subAgentId, messageKind:"dispatch-prompt", body:$body}')
    echo "$MSG_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
    ```
+
+   Sanity check: `dispatchPromptHash` in the `auto-dispatched` event above and `sha256sum` of this `body` field must match. If they don't, the journal is inconsistent with what was sent — investigate before continuing.
 
 ### Step 6: Handle AUTO's return
 
@@ -636,8 +727,13 @@ Loop back to Step 1.
 
 If a `SendMessage` to `subAgentId` or `currentReviewId` fails with "agent not found" (or similar), the agent is gone. Recover via re-dispatch:
 
-1. For AUTO: build a fresh dispatch prompt as in Step 4, BUT add the **continuation note** at the end:
-   > This is a continuation of a prior interrupted run. The branch `<CURRENT_BRANCH>` may already contain commits, a spec under `docs/specs/`, or a plan under `docs/plans/`. Inspect the branch state before starting; do not duplicate already-committed work. The prior run's last known halt was: `<lastHaltQuestion>`.
+1. For AUTO: build a fresh dispatch prompt **using the full Step 4 + Step 4.5 procedure** (verbatim heredoc, pre-dispatch self-check, same-string-twice rule — none of these relax for re-dispatch). Append the **continuation note** as Section 5 inside the same heredoc:
+   ```
+   ## Continuation note
+
+   This is a continuation of a prior interrupted run. The branch `$CURRENT_BRANCH` may already contain commits, a spec under `docs/specs/`, or a plan under `docs/plans/`. Inspect the branch state before starting; do not duplicate already-committed work. The prior run's last known halt was: `$LAST_HALT_QUESTION`.
+   ```
+   Re-run the Step 4.5 self-check on the assembled prompt before dispatching. The check now passes IFF the GitHub-issue and Branch-contract headings are present (the continuation note section is additive, not a replacement).
 
 2. For Review: just re-dispatch with the same prompt. Reviews are stateless across rounds.
 

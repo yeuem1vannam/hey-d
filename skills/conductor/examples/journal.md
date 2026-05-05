@@ -1,3 +1,7 @@
+<!--
+Example shows `idsAreIssueNumbers: false` (synthetic id `117`), so the dispatch-prompt body below does NOT include a `## GitHub issue (authoritative source)` block. For roadmaps with `idsAreIssueNumbers: true`, that block is mandatory — see `conducting-flow.md` § Step 4 § Section 2.
+-->
+
 # Task 117 — Add JWT verification middleware and types
 
 **Branch:** `feat/117-jwt-middleware`   |   **PR:** [#142](https://github.com/example/repo/pull/142) (merged at a3f8b21c4e7d901b25)

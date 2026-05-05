@@ -37,7 +37,7 @@ tasks:
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `id` | number | yes | When the roadmap was produced by the `ROADMAP:` brainstorm flow, this is the GitHub issue number (e.g., `117`). When the roadmap is hand-written, this is a synthetic 1..N index, strictly increasing from 1, no gaps. Conductor doesn't differentiate — it uses `id` literally for branch naming, summary directory naming, and event-log keys. The `idsAreIssueNumbers` field in `roadmap-meta.md` declares which world this roadmap is in. |
-| `title` | string | yes | One-line description used as the dispatch prompt's task description. |
+| `title` | string | yes | One-line description used as the dispatch prompt's task description. **When `idsAreIssueNumbers: true`, treat this as a stale label only** — the GitHub issue body (re-fetched at dispatch time per `conducting-flow.md` § Step 4 Section 2) is the authoritative source. |
 | `deps` | number[] | yes | List of `id`s that must be `done` before this task is eligible. May be empty. |
 | `status` | enum | yes | `pending` initially, transitions per phase machine in `state-schema.md`. |
 
@@ -186,6 +186,15 @@ Every event is a single line of valid JSON. All events share these top-level fie
 **Halt path:** a `gate-decision` with `decision: "halt"` does NOT co-emit a `gate-answer` agent-message — there is no answer when conductor halts to human.
 
 **Two-write atomicity:** the structural event and its sibling agent-message are two separate `echo … >>` appends. POSIX guarantees each single-line append is atomic, but a crash between the two writes leaves an orphaned structural event with no message body. The journal generator handles this with a `[message body unavailable]` placeholder block.
+
+**Verbatim-body contract (applies to ALL `agent-message` events).** The `body` field MUST equal the exact string transmitted to or received from the agent — byte-for-byte. Specifically:
+
+- For conductor-sourced kinds (`dispatch-prompt`, `gate-answer`, `review-prompt`, `feedback`): `body` is the literal string passed as the `prompt` parameter to the `Agent`/`SendMessage` tool, NOT a description of what conductor intends to communicate.
+- For agent-sourced kinds (`gate-question`, `success-return`, `failure-return`, `fixes-pushed-return`, `review-return`): `body` is the agent's full final message verbatim, NOT a one-line summary or extracted excerpt. (The structural event's `returnMessageExcerpt` field is where you put the truncated form; the agent-message `body` stays full.)
+
+**Anti-pattern:** writing `body: "Conductor dispatched AUTO with explicit instructions to do X, Y, Z"` when the actual prompt was a 2000-character structured document with sections. That kind of paraphrase makes the journal lie about what was sent and breaks reproducibility (the `dispatchPromptHash` in the structural event won't match a sha256 of the body). If the body looks dramatically shorter than the actual message, the LLM constructing the JSON paraphrased — re-emit with the verbatim string.
+
+**Hard machine check** for the `dispatch-prompt` kind specifically lives in `conducting-flow.md` § Step 4.5 (heredoc construction + pre-dispatch self-check + hash equality). The contract above is the schema-level statement of the same rule, applied to ALL agent-message kinds; the conducting-flow version is the load-bearing enforcement at write time.
 
 ### Write mechanics (conductor side)
 

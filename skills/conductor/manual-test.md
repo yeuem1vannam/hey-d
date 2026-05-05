@@ -69,11 +69,13 @@ Instead of hand-writing the roadmap files, you can validate the `ROADMAP:` flow 
 
 The `idsAreIssueNumbers: true` field in the produced `roadmap-meta.md` should result in branches like `feat/<X>-add-readme-note`, `feat/<Y>-...`, etc.
 
+5. **Issue-fetch verification (only on the `ROADMAP:` path, since `idsAreIssueNumbers: true`):** while watching task `<X>` dispatch, confirm the dispatch prompt contains a `## GitHub issue (authoritative source)` section naming issue `#<X>` and instructing AUTO to run `gh issue view <X> --comments`. To exercise the freshness contract end-to-end, before invoking conductor, edit issue `#<X>`'s body on GitHub to add a sentence like "ACTUAL spec: write the README note in `docs/test-note.md`, NOT in `README.md`." Then invoke conductor. AUTO's spec / plan / diff should write to `docs/test-note.md`, proving it followed the live issue body and not the stale roadmap title. If AUTO writes to `README.md` instead, the issue-fetch instruction is being ignored — escalate.
+
 ## The run
 
 1. Invoke conductor: `conductor test-conductor-smoke` (or however the user-facing trigger ends up shaped).
 2. Verify session-start announcement: integration branch + worktree path + task counts.
-3. Watch task 1 dispatch. Confirm the dispatch prompt contains the branch contract verbatim. Confirm AUTO commits land on `feat/1-readme-note` and a PR opens against `conductor/test-conductor-smoke`.
+3. Watch task 1 dispatch. Confirm the dispatch prompt contains the branch contract verbatim. **For the hand-written roadmap (`idsAreIssueNumbers` absent / `false`), confirm the dispatch prompt does NOT contain a `## GitHub issue (authoritative source)` section.** Confirm AUTO commits land on `feat/1-readme-note` and a PR opens against `conductor/test-conductor-smoke`.
 4. Watch the review-fix loop. For a one-line change, expect: 0 must-fixes, green CI, immediate merge.
 5. Verify the integration branch now has the merge commit (`git -C .worktrees/conductor-test-conductor-smoke log -1 --oneline`).
 6. Verify `task-1/summary.md` was written with all four sections present.
