@@ -12,17 +12,25 @@ Execute plan by dispatching fresh subagent per task, with two-stage review after
 **Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration
 
 ## Prerequisite
+
+Resolve the agent-config directory once at the start of the skill. This is the **AGENTS_DIR pattern** — every skill that reads `.agents/config/*.md` should use it, so paths stay consistent regardless of cwd (important in monorepos where cwd may not be the repo root):
+
+```bash
+AGENTS_DIR="$(git rev-parse --show-toplevel 2>/dev/null)/.agents"
+# Falls back to the current workspace if not in a git repo.
+```
+
+**Note on `.agents/` resolution:** All `.agents/` paths in this skill — for reading config and for writing cache — resolve via `$AGENTS_DIR`, not via cwd. In a monorepo, do not create a new `.agents/` in a subdirectory.
+
 ### Code Style Config
 
-Check if `.agents/config/code-style.md` exists at the repository root (the directory `git rev-parse --show-toplevel` returns; fall back to the current workspace if not in a git repo). If it does, read it and apply its conventions throughout this skill's execution — file naming, directory structure, component patterns, etc. If absent, proceed with no assumptions about code style.
-
-**Note on `.agents/` resolution:** All `.agents/` paths in this skill — for reading config and for writing cache — resolve at the repository root, not the current workspace. In a monorepo, do not create a new `.agents/` in a subdirectory.
+If `$AGENTS_DIR/config/code-style.md` exists, read it and apply its conventions throughout this skill's execution — file naming, directory structure, component patterns, etc. If absent, proceed with no assumptions about code style.
 
 ### Commit Config
 
-Check if `.agents/config/commits.md` exists at the repository root. If it does, read it and apply its conventions (commit types, scopes, co-author rules, pre-commit commands) when committing or instructing subagents to commit. If absent, use standard Conventional Commits defaults with no co-author attribution.
+If `$AGENTS_DIR/config/commit.md` exists, read it and apply its conventions (commit types, scopes, co-author rules, pre-commit commands, anti-patterns) when committing or instructing subagents to commit. If absent, use standard Conventional Commits defaults with no co-author attribution.
 
-**Never include issue or PR references** (e.g. `#123`) in commit messages unless `.agents/config/commits.md` explicitly instructs it. Don't infer them from context.
+**Never include issue or PR references** (`#<N>`, `closes #<N>`, `fixes #<N>`, `refs #<N>`) in commit messages, and never instruct subagents to. `$AGENTS_DIR/config/commit.md` is the source of truth on this rule.
 
 ## When to Use
 

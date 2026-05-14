@@ -21,9 +21,22 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 ## Prerequisite
 ### Commit Config
 
-Check if `.agents/config/commits.md` exists at the repository root (the directory `git rev-parse --show-toplevel` returns; fall back to the current workspace if not in a git repo). If it does, read it and apply its conventions (commit types, scopes) when writing commit steps in the plan. If absent, use standard Conventional Commits defaults.
+Resolve the agent-config directory once at the start of the skill. This is the **AGENTS_DIR pattern** — every skill that reads `.agents/config/*.md` should use it, so paths stay consistent regardless of cwd (important in monorepos where cwd may not be the repo root):
 
-**Never include issue or PR references** (e.g. `#123`) in commit messages unless `.agents/config/commits.md` explicitly instructs it. Don't infer them from context.
+```bash
+AGENTS_DIR="$(git rev-parse --show-toplevel 2>/dev/null)/.agents"
+# Falls back to the current workspace if not in a git repo.
+```
+
+If `$AGENTS_DIR/config/commit.md` exists, read it and apply its conventions (commit types, scopes, anti-patterns) when writing commit steps in the plan. If absent, use standard Conventional Commits defaults.
+
+## Commit Messages
+
+Plans MUST follow `$AGENTS_DIR/config/commit.md` exactly when generating `git commit -m` steps. The implementer reads the plan verbatim — whatever you write in the plan lands in the commit, byte-for-byte.
+
+**Never include issue or PR references** in any commit message a plan generates: no `#<N>`, no `closes #<N>`, no `fixes #<N>`, no `refs #<N>`, no `resolves #<N>`. Don't infer them from the spec, the branch name (`epic/<N>-...` / `us/<N>-...`), or any other source. Issue refs belong in the PR body (auto-close) and the spec's Reference section (cross-link) — not in commit history (which gets squashed / cherry-picked / rebased and rots the refs).
+
+See `$AGENTS_DIR/config/commit.md` for the source-of-truth rule and rationale.
 
 ## Scope Check
 

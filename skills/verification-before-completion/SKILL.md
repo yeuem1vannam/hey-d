@@ -42,7 +42,7 @@ Use this skill **BEFORE claiming any of the following:**
 
 The completion-verifier subagent's contract is strict. It will emit `STATUS: FAIL` with reason "missing input: <name>" if any of these four inputs is absent. Gather all four before dispatching:
 
-- **Verification commands** — ordered list of shell commands that prove the claim (test suite, typecheck, lint, build, etc.). Read from `.agents/config/commits.md` at the repository root (the directory `git rev-parse --show-toplevel` returns; fall back to the current workspace if not in a git repo) when its pre-commit commands are available; otherwise detect from `package.json` / `Makefile` / project conventions, or ask the user.
+- **Verification commands** — ordered list of shell commands that prove the claim (test suite, typecheck, lint, build, etc.). Resolve `AGENTS_DIR="$(git rev-parse --show-toplevel 2>/dev/null)/.agents"` (the **AGENTS_DIR pattern** — falls back to the current workspace if not in a git repo) and read from `$AGENTS_DIR/config/commit.md` when its pre-commit commands are available; otherwise detect from `package.json` / `Makefile` / project conventions, or ask the user.
 - **Requirements source** — either a path to the plan file whose requirements need checking, or an inline bullet list of requirements extracted from the task description.
 - **Changed files** — the files modified during the work being verified. Get via `git diff --name-only <base-branch>...HEAD`.
 - **Working directory** — absolute path to the project root where the commands should run.

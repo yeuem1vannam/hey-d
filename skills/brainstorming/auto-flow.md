@@ -17,7 +17,7 @@ Auto mode produces Task-shaped outcomes (a plan under `docs/plans/` and a dispat
 Run these before starting the Auto-specific checklist:
 
 1. **Code Style Config** — read `.agents/config/code-style.md` if present, following the same rule described in SKILL.md.
-2. **Commit Config** — read `.agents/config/commits.md` if present, following the same rule described in SKILL.md. Spec commit uses `docs(brainstorming): add spec for <name>` by default.
+2. **Commit Config** — read `$AGENTS_DIR/config/commit.md` if present (resolve `AGENTS_DIR="$(git rev-parse --show-toplevel 2>/dev/null)/.agents"` per the AGENTS_DIR pattern; fall back to the current workspace if not in a git repo). Apply its conventions when committing — including the no-issue-refs rule. Spec commit uses `docs(brainstorming): add spec for <name>` by default.
 3. **Visual Companion** — skip. Auto mode optimises for minimum interaction; do not offer the companion. If a visual comparison is genuinely needed to disambiguate, that is a signal Auto mode is the wrong choice and you should fall back (see Checkpoint 1).
 
 ## Checklist
@@ -98,7 +98,7 @@ In both shapes the spec IS presented before any write, so the `<HARD-GATE>` requ
 ### 5. Write and commit the spec
 
 - Path: `docs/specs/YYYY-MM-DD-<slug>-design.md`. Slug rule matches the Epic flow.
-- Commit with `docs(brainstorming): add spec for <name>` (or the scheme defined in `.agents/config/commits.md`).
+- Commit with `docs(brainstorming): add spec for <name>` (or the scheme defined in `$AGENTS_DIR/config/commit.md`).
 - Do NOT push from Auto mode. Branch/push happens as part of the normal implementation flow.
 
 ### 6. Inline spec self-review

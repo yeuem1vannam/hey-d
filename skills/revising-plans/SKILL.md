@@ -14,11 +14,19 @@ Handle mid-flight plan revision. Called from `executing-plans` or `subagent-driv
 **Announce at start:** "I'm using the revising-plans skill to handle this mid-flight revision."
 
 ## Prerequisite
+
+Resolve the agent-config directory once at the start of the skill. This is the **AGENTS_DIR pattern** — every skill that reads `.agents/config/*.md` should use it, so paths stay consistent regardless of cwd (important in monorepos where cwd may not be the repo root):
+
+```bash
+AGENTS_DIR="$(git rev-parse --show-toplevel 2>/dev/null)/.agents"
+# Falls back to the current workspace if not in a git repo.
+```
+
 ### Commit Config
 
-Check if `.agents/config/commits.md` exists at the repository root (the directory `git rev-parse --show-toplevel` returns; fall back to the current workspace if not in a git repo). If it does, read it and apply its conventions (commit types, scopes, co-author rules, pre-commit commands) when committing. If absent, use standard Conventional Commits defaults with no co-author attribution.
+If `$AGENTS_DIR/config/commit.md` exists, read it and apply its conventions (commit types, scopes, co-author rules, pre-commit commands, anti-patterns) when committing. If absent, use standard Conventional Commits defaults with no co-author attribution.
 
-**Never include issue or PR references** (e.g. `#123`) in commit messages unless `.agents/config/commits.md` explicitly instructs it.
+**Never include issue or PR references** (`#<N>`, `closes #<N>`, `fixes #<N>`, `refs #<N>`) in commit messages. `$AGENTS_DIR/config/commit.md` is the source of truth on this rule.
 
 ## When to Enter This Skill
 

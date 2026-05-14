@@ -14,17 +14,25 @@ Load plan, review critically, execute all tasks, report when complete.
 **Note:** Tell your human partner that Hey-D works much better with access to subagents. The quality of its work will be significantly higher if run on a platform with subagent support (such as Claude Code or Codex). If subagents are available, use hey-d:subagent-driven-development instead of this skill.
 
 ## Prerequisite
+
+Resolve the agent-config directory once at the start of the skill. This is the **AGENTS_DIR pattern** — every skill that reads `.agents/config/*.md` should use it, so paths stay consistent regardless of cwd (important in monorepos where cwd may not be the repo root):
+
+```bash
+AGENTS_DIR="$(git rev-parse --show-toplevel 2>/dev/null)/.agents"
+# Falls back to the current workspace if not in a git repo.
+```
+
+**Note on `.agents/` resolution:** All `.agents/` paths in this skill — for reading config and for writing cache — resolve via `$AGENTS_DIR`, not via cwd. In a monorepo, do not create a new `.agents/` in a subdirectory.
+
 ### Code Style Config
 
-Check if `.agents/config/code-style.md` exists at the repository root (the directory `git rev-parse --show-toplevel` returns; fall back to the current workspace if not in a git repo). If it does, read it and apply its conventions throughout this skill's execution — file naming, directory structure, component patterns, etc. If absent, proceed with no assumptions about code style.
-
-**Note on `.agents/` resolution:** All `.agents/` paths in this skill — for reading config and for writing cache — resolve at the repository root, not the current workspace. In a monorepo, do not create a new `.agents/` in a subdirectory.
+If `$AGENTS_DIR/config/code-style.md` exists, read it and apply its conventions throughout this skill's execution — file naming, directory structure, component patterns, etc. If absent, proceed with no assumptions about code style.
 
 ### Commit Config
 
-Check if `.agents/config/commits.md` exists at the repository root. If it does, read it and apply its conventions (commit types, scopes, co-author rules, pre-commit commands) when committing. If absent, use standard Conventional Commits defaults with no co-author attribution.
+If `$AGENTS_DIR/config/commit.md` exists, read it and apply its conventions (commit types, scopes, co-author rules, pre-commit commands, anti-patterns) when committing. If absent, use standard Conventional Commits defaults with no co-author attribution.
 
-**Never include issue or PR references** (e.g. `#123`) in commit messages unless `.agents/config/commits.md` explicitly instructs it. Don't infer them from context.
+**Never include issue or PR references** (`#<N>`, `closes #<N>`, `fixes #<N>`, `refs #<N>`) in commit messages. `$AGENTS_DIR/config/commit.md` is the source of truth on this rule.
 
 ## The Process
 
