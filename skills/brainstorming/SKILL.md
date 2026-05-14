@@ -41,6 +41,17 @@ This skill has six modes. The mode is chosen by the user's opening message; no c
 | **Auto** | `AUTO:`, `auto brainstorm`, `run auto`, `end-to-end` | `skills/brainstorming/auto-flow.md` |
 | **Task** | *(default — anything else)* | continues in this SKILL.md |
 
+**Terminal states by mode** — what each flow does at the end. The Task flow's "invoke writing-plans" rule does NOT generalize to other modes; check this table before chaining any skill at the end of a brainstorm.
+
+| Mode | Terminal state |
+|---|---|
+| **Task** | Invoke `writing-plans` skill |
+| **User Story** | Decomposition offer (`skills/brainstorming/decomposition-offer.md`) → Task flow on a number, exit on `stop`. Never invokes `writing-plans` directly. |
+| **Epic** | Decomposition offer (`skills/brainstorming/decomposition-offer.md`) → User Story flow on a number, exit on `stop`. Never invokes `writing-plans` directly. |
+| **Scope** | In-chat resolution (no skill chain) |
+| **Roadmap** | `roadmap.md` committed (no skill chain) |
+| **Auto** | Full pipeline per `auto-flow.md` |
+
 ### Detection rule
 
 Scan the user's first message in the session for one of the Epic, User Story, Scope, Roadmap, or Auto trigger phrasings above. Match case-insensitively against an explicit declaration — not a casual mention. If multiple trigger phrasings would match, use priority: **Epic > User Story > Scope > Roadmap > Auto > Task** — planning-grade brainstorms must never be downgraded, and a collaborative mode (Epic / US / Scope) always wins over Auto. Roadmap sits above Auto: a `ROADMAP:` declaration must never be downgraded to Auto, since they produce different artifacts. If matched:
@@ -110,7 +121,7 @@ digraph brainstorming {
 }
 ```
 
-**For Task mode, the terminal state is invoking writing-plans.** Do NOT invoke frontend-design, mcp-builder, or any other implementation skill. The ONLY skill you invoke after a Task brainstorm is writing-plans. (Epic and User Story modes terminate in their own flow files and do NOT invoke writing-plans.)
+**For Task mode, the terminal state is invoking writing-plans.** Do NOT invoke frontend-design, mcp-builder, or any other implementation skill. The ONLY skill you invoke after a Task brainstorm is writing-plans. **For all other modes (Epic, User Story, Scope, Roadmap, Auto), see the terminal-states table in the Mode Detection section — they do NOT invoke writing-plans from the parent flow.**
 
 ## The Process
 

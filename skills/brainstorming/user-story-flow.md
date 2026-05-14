@@ -4,6 +4,10 @@
 >
 > This file is the authoritative checklist for the rest of the session. The Task-mode checklist in SKILL.md does NOT apply when this flow is active.
 
+## Terminal state
+
+This flow terminates at step 10 (the decomposition offer in `skills/brainstorming/decomposition-offer.md`). It does NOT invoke `writing-plans` directly. `writing-plans` is invoked only from inside a nested Task brainstorm — after the user picks a Candidate Task at the offer. On `stop`, this flow exits cleanly without chaining into any implementation skill (no `writing-plans`, no `using-git-worktrees`, no `executing-plans`).
+
 ## Parent context
 
 If invoked with `parent=epic/<N>` and `parent_issue=<N>`, record those values; they drive:
@@ -36,7 +40,7 @@ Create a TodoWrite task for each item:
 7. User reviews the spec file; wait for approval
 8. Confirm and create the GitHub User Story issue (two steps: create, then `gh issue edit` to insert the issue number into the title)
 9. Create the `us/<N>-<slug>` branch (base = parent Epic branch or `main`), commit the spec, push
-10. Offer decomposition into Candidate Tasks
+10. Decomposition offer (terminal) — present Candidate Tasks via the shared `skills/brainstorming/decomposition-offer.md` partial; on `stop`, exit without invoking any other skill
 
 ## Spec sections
 
@@ -126,18 +130,14 @@ git push -u origin "us/<N>-<slug>"
 
 ## Decomposition offer
 
-After push succeeds, present the Candidate Tasks list with numbers:
+After push succeeds, run the shared `skills/brainstorming/decomposition-offer.md` partial with these inputs:
 
-> User Story branch and issue created. Candidate Tasks from the spec:
->
-> 1. <first candidate>
-> 2. <...>
->
-> Brainstorm any of these now? (number / `stop`)
+- `<parent-noun>` = `User Story`
+- `<child-noun-plural>` = `Tasks`
+- `<candidate-list>` = the Candidate Tasks bullet list from the spec
+- `<chain-target>` = continue into the **default Task flow in `SKILL.md`** with the picked candidate as the seed request. Pre-seed the Task spec's Reference section with `Part of #<story_issue>` (and `Part of #<epic_issue>` if applicable). No issue or branch is created at the Task level — `hey-d:using-git-worktrees` and `hey-d:writing-plans` own that downstream.
 
-If the user picks a number, invoke the **existing Task flow in `SKILL.md`** (the Task flow is the default; simply continue into it with the candidate as the seed request). Pre-seed the Task spec's Reference section with `Part of #<story_issue>` (and `Part of #<epic_issue>` if applicable). No issue or branch is created by brainstorming for the Task — `hey-d:using-git-worktrees` and `hey-d:writing-plans` own that downstream.
-
-If the user says `stop`, exit the skill.
+The partial defines the offer text, response handling (`number` / `stop` / clarification), and the hard terminal guard. This flow's responsibility ends when the offer completes.
 
 ## Edge cases
 

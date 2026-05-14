@@ -4,6 +4,10 @@
 >
 > This file is the authoritative checklist for the rest of the session. The Task-mode checklist in SKILL.md does NOT apply when this flow is active.
 
+## Terminal state
+
+This flow terminates at step 10 (the decomposition offer in `skills/brainstorming/decomposition-offer.md`). On a candidate number, it chains into `user-story-flow.md` with parent context. On `stop`, it exits cleanly without chaining into any implementation skill (no `writing-plans`, no `using-git-worktrees`, no `executing-plans`). `writing-plans` is never invoked from this flow.
+
 ## Shared prerequisites
 
 Run these before starting the Epic-specific checklist:
@@ -26,7 +30,7 @@ Create a TodoWrite task for each item and complete them in order:
 7. User reviews the spec file; wait for approval
 8. Confirm and create the GitHub Epic issue
 9. Create the `epic/<N>-<slug>` branch, commit the spec, push
-10. Offer decomposition into Candidate User Stories
+10. Decomposition offer (terminal) — present Candidate User Stories via the shared `skills/brainstorming/decomposition-offer.md` partial; on `stop`, exit without invoking any other skill
 
 ## Spec sections
 
@@ -106,17 +110,14 @@ git push -u origin "epic/<N>-<slug>"
 
 ## Decomposition offer
 
-After the push succeeds, present the Candidate User Stories list with numbers:
+After the push succeeds, run the shared `skills/brainstorming/decomposition-offer.md` partial with these inputs:
 
-> Epic branch and issue created. Candidate User Stories from the spec:
->
-> 1. <first candidate>
-> 2. <second candidate>
-> 3. <...>
->
-> Brainstorm any of these now? (number / `stop`)
+- `<parent-noun>` = `Epic`
+- `<child-noun-plural>` = `User Stories`
+- `<candidate-list>` = the Candidate User Stories bullet list from the spec
+- `<chain-target>` = load `skills/brainstorming/user-story-flow.md` with context `parent=epic/<N>` and `parent_issue=<N>`.
 
-If the user picks a number, invoke `skills/brainstorming/user-story-flow.md` with context `parent=epic/<N>` and `parent_issue=<N>`. If the user says `stop`, exit the skill.
+The partial defines the offer text, response handling (`number` / `stop` / clarification), and the hard terminal guard. This flow's responsibility ends when the offer completes.
 
 ## Edge cases
 
