@@ -167,6 +167,7 @@ Update `state.json`:
 - `subAgentId` = null
 - `prNumber`, `prUrl`, `currentReviewId` = null
 - `fixLoopRound` = 0
+- `nitFixAttempts` = 0
 - `dispatchedAt`, `autoReturnedAt` = null
 - `lastHaltAt`, `lastHaltQuestion` = null
 
@@ -324,7 +325,7 @@ The dispatch prompt is a **literal string** assembled by section concatenation. 
 
 ### Step 5: Dispatch AUTO
 
-Use the Agent tool. Capture the returned agent ID.
+Use the Agent tool with `subagent_type: general-purpose` (or the harness's broadest equivalent — `claude` in FleetView; the contract is **"full tool access, no specialization"**). AUTO runs the whole brainstorm → spec → plan → code pipeline and needs unrestricted tools (Read/Edit/Write/Bash/WebFetch/Agent); specialized agent types (`Plan`, `Explore`, `hey-d:code-reviewer`, etc.) would actively limit it and break AUTO mode. Do NOT leave `subagent_type` unspecified — defaults can drift across harnesses. Capture the returned agent ID.
 
 Update `state.json`:
 - `subAgentId` = returned id
@@ -482,18 +483,40 @@ gh pr checks "$PR_NUMBER" --watch
 
 Wait for terminal state (success / failure).
 
-Decision (depends on `fixLoopRound`):
+Decision (depends on `fixLoopRound`, `nitFixAttempts`, must-fix status, nit status, and CI status):
 
-- **(any round) must-fixes empty AND CI green** → proceed to merge (Step 10).
-- **`fixLoopRound < 2`, must-fixes non-empty (regardless of CI)** → SendMessage AUTO with the must-fixes list. Loop back, increment `fixLoopRound`.
-- **`fixLoopRound < 2`, must-fixes empty AND CI red** → SendMessage AUTO with the failing CI logs. Loop back, increment `fixLoopRound`.
+- **must-fixes empty AND CI green AND nits empty** → proceed to merge (Step 10).
+- **must-fixes empty AND CI green AND nits non-empty AND `nitFixAttempts < 1`** → best-effort nit round. SendMessage AUTO with a **nit-only** feedback labeled as non-blocking:
+  ```
+  Nits (best-effort, NOT blocking — push fixes if cheap; if not, return "skipping nits" and we'll merge as-is):
+  - <nit 1>
+  - <nit 2>
+  ```
+  Update `state.json`: `phase = "review-feedback-sent"`, `nitFixAttempts += 1`. Do NOT increment `fixLoopRound`. Loop back to await AUTO.
+- **must-fixes empty AND CI green AND nits non-empty AND `nitFixAttempts >= 1`** → best-effort cap reached. Post remaining nits as a single PR comment for human follow-up, then proceed to merge (Step 10):
+  ```bash
+  gh pr comment "$PR_NUMBER" --body "$(printf 'Conductor merged with the following nits unaddressed after best-effort:\n\n%s' "$NITS_BULLET_LIST")"
+  ```
+- **`fixLoopRound < 2`, must-fixes non-empty (regardless of CI)** → SendMessage AUTO with **bundled must-fix + nit** feedback. Label the two clearly so AUTO knows which is blocking:
+  ```
+  Must-fix (BLOCKING — must be addressed):
+  - <must-fix 1>
+  - <must-fix 2>
+
+  Nits (best-effort, address if cheap; not blocking):
+  - <nit 1>
+  - <nit 2>
+  ```
+  Loop back, increment `fixLoopRound`. Do NOT increment `nitFixAttempts` — bundled rounds do not consume the nit budget. The nit budget is reserved for the case where must-fixes are clean and only nits remain.
+- **`fixLoopRound < 2`, must-fixes empty AND CI red** → SendMessage AUTO with the failing CI logs (no nits — CI red is the priority). Loop back, increment `fixLoopRound`.
 - **`fixLoopRound == 2`, must-fixes empty AND CI red** → this is the **CI-flake safety round**. SendMessage AUTO asking it to push an empty no-op commit to retrigger CI (or, if AUTO declines, conductor itself runs `git -C <main-tree> commit --allow-empty -m "chore: retrigger CI" && git push`). Loop back, increment `fixLoopRound` (now 3).
 - **`fixLoopRound == 2`, must-fixes non-empty** → halt. The third round is reserved for CI flake retries only; a second round of must-fixes signals the task is in trouble and needs human intervention.
 - **`fixLoopRound >= 3` AND NOT success** → halt. Anything that reaches round 3 and is not the green/empty success case (must-fixes still present, or CI still red after the flake retry) is a hard stop.
 
 When sending feedback (loop-back), update `state.json`:
 - `phase = "review-feedback-sent"`
-- `fixLoopRound += 1`
+- For must-fix rounds (bundled or CI-red): `fixLoopRound += 1`
+- For nit-only rounds: `nitFixAttempts += 1` (and `fixLoopRound` unchanged)
 
    **Emit `review-verdict` (always):**
    ```bash
@@ -524,6 +547,8 @@ When sending feedback (loop-back), update `state.json`:
    ```
 
    **Emit `feedback-sent` (only when SendMessaging feedback to AUTO):**
+
+   `feedbackKind` discriminates which round this is: `"must-fix-bundled"` (must-fix list, possibly with nits bundled in), `"ci-flake"` (no-op-commit retrigger), or `"nit-only"` (best-effort nit round, must-fixes empty + CI green).
    ```bash
    EVENT_JSON=$(jq -nc \
      --arg ts "$(date -u +%FT%TZ)" \
@@ -531,8 +556,10 @@ When sending feedback (loop-back), update `state.json`:
      --argjson taskId "$TASK_ID" \
      --arg subAgentId "$SUB_AGENT_ID" \
      --arg feedbackBody "$FEEDBACK_BODY" \
+     --arg feedbackKind "$FEEDBACK_KIND" \
      --argjson fixLoopRound "$FIX_LOOP_ROUND" \
-     '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"feedback-sent", subAgentId:$subAgentId, feedbackBody:$feedbackBody, fixLoopRound:$fixLoopRound}')
+     --argjson nitFixAttempts "$NIT_FIX_ATTEMPTS" \
+     '{ts:$ts, phase:$phase, taskId:$taskId, eventType:"feedback-sent", subAgentId:$subAgentId, feedbackBody:$feedbackBody, feedbackKind:$feedbackKind, fixLoopRound:$fixLoopRound, nitFixAttempts:$nitFixAttempts}')
    echo "$EVENT_JSON" >> "$WORKTREE/docs/roadmaps/$ROADMAP_ID/state/events.buffer.jsonl"
    ```
 
@@ -651,7 +678,7 @@ $(echo "$TASK_EVENTS" | while read -r EV; do
     gate-decision)      echo "$TS  Gate decision: $(echo "$EV" | jq -r '.decision') (Category $(echo "$EV" | jq -r '.category'))" ;;
     review-dispatched)  echo "$TS  Dispatched review against PR #$(echo "$EV" | jq -r '.prNumber')" ;;
     review-verdict)     echo "$TS  Review: $(echo "$EV" | jq -r '.mustFixesCount') must-fixes, $(echo "$EV" | jq -r '.nitsCount') nits, CI $(echo "$EV" | jq -r '.ciStatus')" ;;
-    feedback-sent)      echo "$TS  Sent feedback to AUTO (round $(echo "$EV" | jq -r '.fixLoopRound'))" ;;
+    feedback-sent)      echo "$TS  Sent feedback to AUTO (kind: $(echo "$EV" | jq -r '.feedbackKind // "must-fix-bundled"'); fixLoopRound=$(echo "$EV" | jq -r '.fixLoopRound'), nitFixAttempts=$(echo "$EV" | jq -r '.nitFixAttempts // 0'))" ;;
     merge-decision)     echo "$TS  Merged PR (commit $(echo "$EV" | jq -r '.mergeSha'))" ;;
     task-halted)        echo "$TS  Halted: $(echo "$EV" | jq -r '.cause')" ;;
     task-done)          echo "$TS  Wrote summary, marked done" ;;

@@ -9,6 +9,7 @@
   "lastHaltAt": null,
   "lastHaltQuestion": null,
   "fixLoopRound": 0,
+  "nitFixAttempts": 0,
   "currentReviewId": null,
   "prNumber": 43,
   "prUrl": "https://github.com/example/repo/pull/43",

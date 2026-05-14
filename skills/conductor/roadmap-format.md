@@ -159,7 +159,7 @@ Every event is a single line of valid JSON. All events share these top-level fie
 | `gate-decision` | `subAgentId`, `gateQuestion` (verbatim), `decision` (`answer` / `halt`), `groundingSource` (when `decision == answer`), `category` (`A` / `B` / `C` per `answer-authority.md`) |
 | `review-dispatched` | `currentReviewId`, `prNumber` |
 | `review-verdict` | `currentReviewId`, `mustFixesCount`, `nitsCount`, `ciStatus` (`green` / `red`), `verbatimMustFixes` (array of strings) |
-| `feedback-sent` | `subAgentId`, `feedbackBody`, `fixLoopRound` |
+| `feedback-sent` | `subAgentId`, `feedbackBody`, `feedbackKind` (`must-fix-bundled` / `ci-flake` / `nit-only`), `fixLoopRound`, `nitFixAttempts` |
 | `merge-decision` | `prNumber`, `result` (`merged` / `failed`), `mergeSha` |
 | `task-halted` | `lastHaltQuestion`, `cause` (`gate` / `failure` / `fix-loop-exhausted` / `merge-failed` / `contract-violation`) |
 | `task-resumed` | `resumeAction` (`resume` / `restart` / `abort`), `userMessage` (verbatim, only when `resumeAction == resume`) |
@@ -242,7 +242,9 @@ A human-readable narrative derived from the event log at task-done. Co-located w
 ## Review rounds
 
 - Round <fixLoopRound>: <mustFixesCount> must-fixes, <nitsCount> nits, CI <green|red>
-  <if must-fixes:>  Sent feedback; AUTO pushed fixes
+  <if must-fixes:>  Sent must-fix feedback (nits bundled); AUTO pushed fixes
+- <if nit-only round ran:>  Best-effort nit round (`nitFixAttempts=1`): <nitsCount> nits; AUTO <pushed fixes | skipped>
+- <if cap reached with nits remaining:>  Cap reached; remaining nits posted as PR comment; merged as-is
 
 ## Conversation transcript
 

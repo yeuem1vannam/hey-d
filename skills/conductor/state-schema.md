@@ -21,7 +21,8 @@ This directory is **gitignored** (see `.gitignore`'s `docs/roadmaps/*/state/` li
 | `phase` | enum (see below) | yes | The state machine's current position. **Resume's first action is `switch (phase)`.** |
 | `lastHaltAt` | ISO-8601 string \| null | yes | When conductor last halted to a human. Null in non-halted phases. |
 | `lastHaltQuestion` | string \| null | yes | The question or failure text that triggered the halt. Surfaced verbatim on resume. |
-| `fixLoopRound` | number | yes | Review-fix iteration count, 0 to 3. |
+| `fixLoopRound` | number | yes | Review-fix iteration count, 0 to 3. Incremented on must-fix rounds (bundled or CI-red); NOT incremented on nit-only rounds. |
+| `nitFixAttempts` | number | yes | Best-effort nit-only iteration count, 0 to 1. Incremented only on **nit-only** feedback rounds (must-fixes empty + CI green + nits non-empty + cap not yet reached). Does NOT increment on bundled must-fix+nit rounds — those consume `fixLoopRound` budget instead. Cap = 1; once reached, conductor posts remaining nits as a PR comment and merges. |
 | `currentReviewId` | string \| null | yes | Dispatched review agent's ID. Used to know whether feedback for this round was already sent. |
 | `prNumber` | number \| null | yes | The per-task PR number (from `gh pr create`). Null until AUTO opens the PR. |
 | `prUrl` | string \| null | yes | Convenience for human-facing reporting. Mirrors `prNumber`. |
@@ -45,6 +46,7 @@ All required fields MUST be present (with `null` where the value is not yet know
   "lastHaltAt": null,
   "lastHaltQuestion": null,
   "fixLoopRound": 0,
+  "nitFixAttempts": 0,
   "currentReviewId": null,
   "prNumber": null,
   "prUrl": null,
@@ -79,9 +81,11 @@ auto-running → task-halted (AUTO returned failure or contract violation)
 auto-blocked-on-gate → auto-running (conductor SendMessages an answer)
 auto-blocked-on-gate → task-halted (conductor cannot answer)
 awaiting-review → review-running
-review-running → review-feedback-sent (must-fixes returned)
-review-running → awaiting-merge (clean review + green CI)
-review-feedback-sent → review-running (AUTO pushed; loop back) — increments fixLoopRound
+review-running → review-feedback-sent (must-fixes returned, OR must-fixes empty + nits non-empty + nitFixAttempts < 1)
+review-running → awaiting-merge (clean review + green CI, OR nits non-empty + nitFixAttempts cap reached → conductor posts PR comment then merges)
+review-feedback-sent → review-running (AUTO pushed; loop back)
+  — increments fixLoopRound on must-fix rounds (bundled or CI-red)
+  — increments nitFixAttempts on nit-only rounds
 review-feedback-sent → task-halted (fixLoopRound > 3)
 awaiting-merge → summary-writing
 awaiting-merge → task-halted (gh pr merge failed)
